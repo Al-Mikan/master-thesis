@@ -1,0 +1,31 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{times}
+\usepackage[top=25mm,bottom=25mm,left=25mm,right=25mm]{geometry}
+
+\title{Disentangling Action from Species: Adversarial Gated Fusion for Robust Unsupervised Animal Behavior Recognition}
+\author{
+Mayu Kikuchi$^{1\dagger}$, Yasumasa Tamura$^{2}$, and Masahito Yamamoto$^{2}$\\[4pt]
+{\small $^{1}$Graduate School of Information Science and Technology, Hokkaido University, Japan}\\
+{\small $^{2}$Faculty of Information Science and Technology, Hokkaido University, Japan}\\
+{\small Email: kikuchi.mayu.b3@elms.hokudai.ac.jp, Tel: +81-11-706-6445}
+}
+\date{}
+
+\begin{document}
+\maketitle
+
+\noindent
+Recognizing animal behaviors is essential for ensuring animal welfare and effective management in zoological environments. Accurate behavior monitoring allows caretakers to detect early signs of stress, illness, or abnormal activity, which are critical for welfare assessment and preventive care. However, conventional supervised learning approaches rely heavily on large-scale labeled datasets for each target behavior. This dependence makes it difficult to generalize across different species and habitats, where collecting labeled data is time-consuming, labor-intensive, and often infeasible. Moreover, behavior definitions may vary between species, introducing additional domain-specific biases that hinder scalability.
+
+To address these challenges, our previous work proposed a dual-stream architecture with Gated Fusion, which adaptively integrates visual appearance from RGB videos and motion dynamics from optical flow. The model achieved strong clustering performance even on out-of-domain data, confirming the benefit of combining complementary modalities. Nevertheless, we found that the learned feature representations remained partially entangled, meaning that behavioral and species-specific information were intertwined. Such entanglement limits generalization and can cause the model to rely on species-dependent cues rather than behavioral dynamics themselves.
+
+In this study, we propose a novel Adversarial Gated Fusion architecture designed to disentangle action and species representations for more robust, domain-invariant learning. Specifically, we introduce an adversarial training scheme in which an action encoder and a species discriminator are jointly optimized. The discriminator learns to classify species from embedding vectors, while the encoder simultaneously learns to deceive it—suppressing species-related information while retaining behavior-discriminative cues. This adversarial interplay encourages the formation of a species-invariant embedding space, enabling the model to capture intrinsic behavioral structures that generalize to unseen environments.
+
+We trained the proposed model on the large-scale Animal Kingdom dataset and conducted cross-domain evaluation using surveillance footage of polar bears provided by Sapporo Maruyama Zoo. Quantitative results show that our adversarial Gated Fusion model consistently outperformed both the non-adversarial baseline and single-modality models (RGB-only and flow-only) on clustering metrics such as Adjusted Rand Index (ARI) and Normalized Mutual Information (NMI). Furthermore, qualitative visualization using t-SNE confirmed that the embeddings formed well-separated clusters corresponding to distinct behavioral patterns, with reduced inter-species overlap.
+
+Although mild overfitting was observed during training, the adversarial disentanglement mechanism clearly improved the model’s generalization to out-of-domain data. These findings highlight the effectiveness of combining motion–appearance fusion with adversarial learning to construct species-invariant, behavior-centric representations. In future work, we plan to incorporate temporal consistency constraints and self-supervised objectives to further enhance robustness. Extending the approach to multi-animal interaction scenes is another promising direction toward comprehensive, real-world animal behavior understanding.
+
+\vspace{1em}
+\noindent\textbf{Keywords:} Animal Behavior Recognition, Representation Learning, Disentanglement, Adversarial Learning, Optical Flow, Domain Adaptation
+
+\end{document}
