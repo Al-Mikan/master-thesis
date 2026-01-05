@@ -1,6 +1,6 @@
 \documentclass[a4paper,12pt,oneside,openany]{jsbook}
+\usepackage[dvipdfmx]{graphicx}
 \usepackage{amsmath,amssymb}
-\usepackage[dvips,dvipdfm]{graphicx}
 \usepackage{verbatim}
 \usepackage{ascmac}
 \usepackage{makeidx}
@@ -37,10 +37,14 @@
 \mainmatter
 
 %本文
-% 第1章 序論
-\include{chapter1}
-% 第2章 結論
-\include{chapter2}
+%本文
+\include{chapter1} % 序論
+\include{chapter2} % 関連研究
+\include{chapter3} % 提案手法
+\include{chapter4} % 実験設定
+\include{chapter5} % 実験結果
+\include{chapter6} % 考察
+\include{chapter7} % 結論
 
 \chapter*{謝辞}
 \addcontentsline{toc}{chapter}{謝辞}
