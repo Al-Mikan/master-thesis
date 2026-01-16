@@ -142,13 +142,12 @@ Animal Kingdom には含まれない実環境データとして，
 行動ラベルは飼育員による観察記録に基づいて付与され，
 ホッキョクグマと同様に，単一の行動を一貫して示している区間を手動で抽出した．
 
-% TODO: 図を追加する場合は以下のコメントを解除
-% \begin{figure}[t]
-%   \centering
-%   \includegraphics[width=0.9\linewidth]{image/elephant.png}
-%   \caption{評価用データセット（アジアゾウ監視映像）の例}
-%   \label{fig:elephant}
-% \end{figure}
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\linewidth]{image/elephant_samples.jpg}
+  \caption{評価用データセット（アジアゾウ監視映像）の例}
+  \label{fig:elephant}
+\end{figure}
 
 表\ref{tab:elephant_actions}に各行動クラスに対応するクリップ数をまとめる．
 
@@ -160,10 +159,11 @@ Animal Kingdom には含まれない実環境データとして，
     \hline
     Action & Number of clips \\
     \hline
-    % TODO: 行動クラスとクリップ数を追加
-    XXX & XXX \\
-    XXX & XXX \\
-    XXX & XXX \\
+    Eating & 37 \\
+    Keeping still & 17 \\
+    Walking & 15 \\
+    Swimming & 12 \\
+    Sleeping & 9 \\
     \hline
   \end{tabular}
 \end{table}
@@ -224,9 +224,11 @@ Animal Kingdom には含まれない実環境データとして，
 本手法の学習において，目的関数に含まれる Multi-Similarity 損失のパラメータ $\alpha$，$\beta$，$\lambda$（base），各損失項の重み係数 $\lambda_{ms}$，$\lambda_{action}$，およびGRLのスケーリングパラメータ $\lambda_{grl}$ は，モデルの性能に大きく影響する重要なハイパーパラメータである．
 これらの値を手動で調整することは困難であるため，本実験ではベイズ最適化に基づくハイパーパラメータ自動最適化フレームワークである Optuna \cite{akiba2019optuna} を使用した．
 
-具体的には，Animal Kingdom データセットの検証用サブセットに対する ARI を最大化することを目的関数として設定し，以下の探索空間において最適化を行った：
+具体的には，Animal Kingdom データセットの検証用サブセットに対する ARI と NMI の和を最大化することを目的関数として設定し，以下の探索空間において最適化を行った：
 
 \begin{itemize}
+  \item 学習率（初期値）: 探索範囲 $[1 \times 10^{-5}, 1 \times 10^{-3}]$（対数スケール）
+  \item Weight Decay: 探索範囲 $[1 \times 10^{-6}, 1 \times 10^{-4}]$（対数スケール）
   \item Multi-Similarity 損失のスケーリングパラメータ $\alpha$: 探索範囲 $[1.0, 3.0]$
   \item Multi-Similarity 損失のスケーリングパラメータ $\beta$: 探索範囲 $[40, 80]$
   \item Multi-Similarity 損失のベース $\lambda$: 探索範囲 $[0.3, 0.7]$
@@ -235,10 +237,10 @@ Animal Kingdom には含まれない実環境データとして，
   \item GRLのスケーリングパラメータ $\lambda_{grl}$: 探索範囲 $[0.01, 1.0]$
 \end{itemize}
 
-Optuna による Tree-structured Parzen Estimator（TPE）を用いた 50 回の試行の結果，最も検証スコアが高かった設定を最終的な評価実験に採用した．
+Optuna による Tree-structured Parzen Estimator（TPE）を用いた 50 回の試行の結果，最も検証スコア（ARI + NMI）が高かった設定を最終的な評価実験に採用した．
 
 \section{評価指標}
-学習された埋め込み空間において、行動クラスがどの程度適切に分離されているかを定量的に評価するため、抽出された特徴ベクトルに対してKMeans++によるクラスタリングを適用し、正解ラベルとの一致度を測定した。本研究では教師なし学習による行動表現の獲得を目的としているため、直接的な分類精度ではなく、クラスタリングの品質を評価する指標を採用した。
+学習された埋め込み空間において、行動クラスがどの程度適切に分離されているかを定量的に評価するため、抽出された特徴ベクトルに対して、コサイン距離を用いた凝集型クラスタリング（Agglomerative Clustering）を適用し、正解ラベルとの一致度を測定した。本研究では教師なし学習による行動表現の獲得を目的としているため、直接的な分類精度ではなく、クラスタリングの品質を評価する指標を採用した。
 
 \subsection{Adjusted Rand Index (ARI)}
 Adjusted Rand Index (ARI) は、2つのクラスタリング結果間の類似度を測定する指標であり、偶然による一致を補正している点が特徴である。ARIは以下の式で定義される：
