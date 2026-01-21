@@ -7,8 +7,8 @@
 \section{データセット}
 本研究では、提案手法の有効性と未知の環境への汎化性能を検証するために、学習用として大規模な野生動物データセット（ソースドメイン）、評価用として実際の動物園で撮影された監視映像データセット（ターゲットドメイン）の2種類を使用した。
 
-\subsection{Animal Kingdom}
-Animal Kingdom \cite{ng2022animal} は，850 種類以上の動物種と
+\subsection{Animal Kingdom Dataset}
+Animal Kingdom Dataset \cite{ng2022animal} は，850 種類以上の動物種と
 140 種類以上の行動クラスを含む，大規模な公開動画データセットである。
 すべての動画は 24 fps の一定フレームレートで記録されており，
 撮影視点や背景環境，照明条件などにおいて高い多様性を有している。
@@ -173,26 +173,7 @@ Animal Kingdom には含まれない実環境データとして，
 ネットワークアーキテクチャについては第3章で述べた通りであり，
 本節では学習環境および学習パラメータに焦点を当てる．
 
-\subsection{学習環境}
-本研究における全ての実験は，以下の計算環境において実施した．
 
-\begin{table}[h]
-  \centering
-  \caption{実験に使用した計算環境}
-  \label{tab:environment}
-  \begin{tabular}{ll}
-    \hline
-    項目 & 仕様 \\
-    \hline
-    OS & Ubuntu 20.04 LTS \\
-    GPU & NVIDIA GeForce RTX 3090 (24GB) \\
-    CPU & AMD Ryzen 9 5900X \\
-    メモリ & 64 GB \\
-    深層学習フレームワーク & PyTorch 2.0 \\
-    CUDA & 11.8 \\
-    \hline
-  \end{tabular}
-\end{table}
 
 \subsection{学習パラメータ}
 モデルの学習には Adam オプティマイザを使用し，
@@ -227,14 +208,14 @@ Animal Kingdom には含まれない実環境データとして，
 具体的には，Animal Kingdom データセットの検証用サブセットに対する ARI と NMI の和を最大化することを目的関数として設定し，以下の探索空間において最適化を行った：
 
 \begin{itemize}
-  \item 学習率（初期値）: 探索範囲 $[1 \times 10^{-5}, 1 \times 10^{-3}]$（対数スケール）
-  \item Weight Decay: 探索範囲 $[1 \times 10^{-6}, 1 \times 10^{-4}]$（対数スケール）
-  \item Multi-Similarity 損失のスケーリングパラメータ $\alpha$: 探索範囲 $[1.0, 3.0]$
-  \item Multi-Similarity 損失のスケーリングパラメータ $\beta$: 探索範囲 $[40, 80]$
-  \item Multi-Similarity 損失のベース $\lambda$: 探索範囲 $[0.3, 0.7]$
-  \item Multi-Similarity 損失の重み $\lambda_{ms}$: 探索範囲 $[0.1, 2.0]$
-  \item 行動分類損失の重み $\lambda_{action}$: 探索範囲 $[0.1, 2.0]$
-  \item GRLのスケーリングパラメータ $\lambda_{grl}$: 探索範囲 $[0.01, 1.0]$
+  \item Multi-Similarity 損失のスケーリングパラメータ $\alpha$: 探索範囲 $[3.0, 6.0]$
+  \item Multi-Similarity 損失のスケーリングパラメータ $\beta$: 探索範囲 $[50.0, 70.0]$
+  \item Multi-Similarity 損失のベース: 0.5（固定）
+  \item 行動分類損失の重み $\lambda_{action}$: 探索範囲 $[1.0, 3.0]$
+  \item GRLのスケーリングパラメータ $\lambda_{grl}$: 探索範囲 $[0.5, 1.0]$
+  \item 学習率: $\{1.0 \times 10^{-4}, 2.0 \times 10^{-4}, 3.0 \times 10^{-4}\}$
+  \item Weight Decay: $\{1.0 \times 10^{-4}, 1.0 \times 10^{-3}, 1.0 \times 10^{-2}\}$
+  \item Dropout 率: $\{0.3, 0.5\}$
 \end{itemize}
 
 Optuna による Tree-structured Parzen Estimator（TPE）を用いた 50 回の試行の結果，最も検証スコア（ARI + NMI）が高かった設定を最終的な評価実験に採用した．
@@ -263,7 +244,7 @@ Normalized Mutual Information (NMI) は、クラスタリング結果と正解�
 \section{実験の構成}
 本研究では，提案手法の性能を多角的に検証するため，以下の3つの実験を行う．
 
-\subsection{実験1: ターゲットドメインでの行動分類 (シロクマ監視映像)}
+\subsection{実験1: シロクマ監視映像における行動分類}
 提案手法の実環境への適応能力と，未知の動物種に対する汎化性能（Out-of-domain）を検証する．
 学習済みモデルに対し，学習時に一度も提示されていない「シロクマ監視映像」を入力し，同様にクラスタリング精度を評価する．
 ソースドメインとは画質や環境が大きく異なるターゲットドメインにおいて，動物の行動（特に常同行動などの重要な動作）が正しく分離されているかを確認する．

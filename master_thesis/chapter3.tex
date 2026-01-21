@@ -384,21 +384,18 @@ $\mathbf{F}_i$ は入力映像 $x_i$ に対する統合特徴量を表す．
 および敵対的損失 $L_{adv}$ の加重和として定義される：
 
 \begin{equation}
-  L_{total} = \lambda_{ms} L_{ms} + \lambda_{action} L_{action} + L_{adv}
+  L_{total} = L_{ms} + \lambda_{action} L_{action} + L_{adv}
   \label{eq:total_loss}
 \end{equation}
 
-ここで，
-$\lambda_{ms}$ と $\lambda_{action}$ はそれぞれの損失項の重み係数であり，
-各損失間のバランスを制御する．
 敵対的損失 $L_{adv}$ は目的関数に直接加算されるが，
-その影響度はGRLのスケーリングパラメータ $\lambda_{grl}$ によって制御される．
-これらのハイパーパラメータは，行動識別性と種不変性のトレードオフに影響を与えるため，
+その影響度は GRL のスケーリングパラメータ $\lambda_{grl}$ によって制御される．
+$\lambda_{grl}$ が大きいと種情報の抑制が強まるが，
+大きすぎると行動識別能力が低下する可能性があるため，
 適切な値の設定が重要である．
 
-Multi-Similarity 損失 $L_{ms}$ はサンプル間の相対的な類似度構造を学習し，
 行動分類損失 $L_{action}$ は行動クラスの識別境界を直接的に学習する．
-敵対的損失 $L_{adv}$ はGRLを介して種に依存した情報を特徴空間から除去する．
+敵対的損失 $L_{adv}$ は GRL を介して種に依存した情報を特徴空間から除去する．
 これらを適切な重み付けで併用することで，
 クラスタ内の密集性とクラス間の分離性，および種不変性を
 効果的に最適化できる．
@@ -412,17 +409,11 @@ Multi-Similarity 損失のパラメータ $\alpha$，$\beta$，$\lambda$（base�
 本研究ではベイズ最適化に基づくハイパーパラメータ自動最適化フレームワークである
 Optuna \cite{akiba2019optuna} を使用した．
 
-具体的には，検証データセットにおける
-ARI（Adjusted Rand Index）を最大化することを目的関数として設定し，
-以下の探索空間において最適化を行った：
-\begin{itemize}
-  \item Multi-Similarity 損失のスケーリングパラメータ $\alpha$: 探索範囲 $[1.0, 3.0]$
-  \item Multi-Similarity 損失のスケーリングパラメータ $\beta$: 探索範囲 $[40, 80]$
-  \item Multi-Similarity 損失のベース $\lambda$: 探索範囲 $[0.3, 0.7]$
-  \item Multi-Similarity 損失の重み $\lambda_{ms}$: 探索範囲 $[0.1, 2.0]$
-  \item 行動分類損失の重み $\lambda_{action}$: 探索範囲 $[0.1, 2.0]$
-  \item GRLのスケーリングパラメータ $\lambda_{grl}$: 探索範囲 $[0.01, 1.0]$
-\end{itemize}
-
-Optuna による Tree-structured Parzen Estimator（TPE）を用いた探索の結果，
-最も検証スコアが高かった設定を最終的な評価実験に採用した．
+Multi-Similarity 損失のパラメータ $\alpha$，$\beta$ ，$\lambda$（base），
+行動分類損失の重み係数 $\lambda_{action}$ ，
+および GRL のスケーリングパラメータ $\lambda_{grl}$ は，
+モデルの性能に大きく影響する重要なハイパーパラメータである．
+これらの値を手動で調整することは困難であるため，
+本研究ではベイズ最適化に基づくハイパーパラメータ自動最適化フレームワークである
+Optunaを使用した．
+具体的な探索空間および最適化の詳細は第\ref{chap:experiment_settings}章で述べる．
