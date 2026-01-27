@@ -13,20 +13,20 @@ Animal Kingdom Dataset \cite{ng2022animal} は，850 種類以上の動物種と
 すべての動画は 24 fps の一定フレームレートで記録されており，
 撮影視点や背景環境，照明条件などにおいて高い多様性を有している。
 
-このような多様性により，Animal Kingdom は
+このような多様性により，Animal Kingdom Dataset は
 動物種や撮影環境の違いに依存しない汎用的な行動表現の学習に適している。
 一方で，既存の行動認識データセットである MammalNet \cite{mammalnet}
 や KABR \cite{kabr} は，種数および行動クラス数の両面において多様性が限定的である。
 例えば，KABR データセットは 3 種類の動物カテゴリに対して
 7 種類の行動のみを含み，
 MammalNet も哺乳類に限定された 12 種類の行動クラスから構成されている。
-これらと比較すると，Animal Kingdom は
+これらと比較すると，Animal Kingdom Dataset は
 はるかに広範な動物種および行動を網羅しており，
 ゼロショット分類や距離ベースの行動認識といった
 汎化性能を重視するタスクに特に適している。
 
 本研究では，行動表現空間の学習に焦点を当てるため，
-Animal Kingdom のうち哺乳類（Mammals）に属する動画のみを使用し，
+Animal Kingdom Dataset のうち哺乳類（Mammals）に属する動画のみを使用し，
 さらに各行動クラスについて 100 本以上の動画サンプルを有するものに限定した。
 その上で，以下の条件に基づきデータのフィルタリングを行った。
 
@@ -36,20 +36,20 @@ Animal Kingdom のうち哺乳類（Mammals）に属する動画のみを使用�
   \item 単一の行動ラベルのみが付与されている動画であること
 \end{itemize}
 
-図\ref{fig:animalkingdom}に Animal Kingdom データセットの例を示し，
+図\ref{fig:animalkingdom}に Animal Kingdom Dataset の例を示し，
 表\ref{tab:animalkingdom_actions}には，
 本研究で使用した行動クラスと対応するクリップ数を示す。
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.9\linewidth]{image/animalkingdom.png}
-  \caption{学習用データセット（Animal Kingdom）の例}
+  \caption{学習用データセット（Animal Kingdom Dataset）の例}
   \label{fig:animalkingdom}
 \end{figure}
 
 \begin{table}[t]
   \centering
-  \caption{学習に用いた Animal Kingdom の行動クラスとクリップ数}
+  \caption{学習に用いた Animal Kingdom Dataset の行動クラスとクリップ数}
   \label{tab:animalkingdom_actions}
   \begin{tabular}{lc}
     \hline
@@ -68,7 +68,7 @@ Animal Kingdom のうち哺乳類（Mammals）に属する動画のみを使用�
 
 \subsection{ホッキョクグマ監視映像}
 提案手法によって学習された行動表現空間の未知環境への汎化性能を評価するため，
-Animal Kingdom には含まれない実環境データとして，
+Animal Kingdom Dataset には含まれない実環境データとして，
 札幌市円山動物園のホッキョクグマ館で撮影された監視映像データセットを使用した。
 
 本データは 2020 年 8 月 30 日に，
@@ -87,9 +87,7 @@ Animal Kingdom には含まれない実環境データとして，
 常同行動は動物福祉の観点から重要な指標であり，
 継続的な監視が求められる行動である。
 
-本データセットは，照明条件の変化，カメラブレ，
-および複雑な背景など，
-実環境特有のさまざまなノイズを含んでいる。
+本データセットは，屋外特有の照明変化に加え，詳細な動作の視認を困難にする低解像度および低フレームレート（1 fps）といった，実環境特有のノイズを含んでいる。
 そのため，本データは，
 提案手法が実環境下においても頑健かつ汎化的な
 行動表現を獲得できているかを評価するための，
@@ -175,41 +173,19 @@ Animal Kingdom には含まれない実環境データとして，
 
 
 \subsection{学習パラメータ}
-モデルの学習には Adam オプティマイザを使用し，
-表\ref{tab:hyperparams}に示すハイパーパラメータを設定した．
-学習率については，Warm-up 付きの Cosine Annealing スケジューラを適用し，
-最初の 5 エポックで学習率を線形に増加させた後，
-残りのエポックで余弦関数に従って減衰させた．
-
-\begin{table}[h]
-  \centering
-  \caption{学習に使用したハイパーパラメータ}
-  \label{tab:hyperparams}
-  \begin{tabular}{ll}
-    \hline
-    パラメータ & 値 \\
-    \hline
-    学習率（初期値） & $1 \times 10^{-4}$ \\
-    バッチサイズ & 32 \\
-    エポック数 & 100 \\
-    オプティマイザ & Adam ($\beta_1 = 0.9$, $\beta_2 = 0.999$) \\
-    Weight Decay & $1 \times 10^{-5}$ \\
-    クリップ長 & 16 フレーム \\
-    入力解像度 & $224 \times 224$ \\
-    \hline
-  \end{tabular}
-\end{table}
+本実験では，最適化アルゴリズムとして Adam を採用した．
+また，Metric Learning においてはバッチ内のサンプル多様性が学習効率に大きく寄与するため，
+バッチサイズは比較的大きな値である 256 に設定した．
 
 \subsection{ハイパーパラメータの最適化}
-本手法の学習において，目的関数に含まれる Multi-Similarity 損失のパラメータ $\alpha$，$\beta$，$\lambda$（base），各損失項の重み係数 $\lambda_{ms}$，$\lambda_{action}$，およびGRLのスケーリングパラメータ $\lambda_{grl}$ は，モデルの性能に大きく影響する重要なハイパーパラメータである．
+本手法の学習において，目的関数に含まれる Multi-Similarity 損失のパラメータ $\alpha$，$\beta$，行動分類損失の重み係数 $\lambda_{action}$，およびGRLのスケーリングパラメータ $\lambda_{grl}$ は，モデルの性能に大きく影響する重要なハイパーパラメータである．
 これらの値を手動で調整することは困難であるため，本実験ではベイズ最適化に基づくハイパーパラメータ自動最適化フレームワークである Optuna \cite{akiba2019optuna} を使用した．
 
-具体的には，Animal Kingdom データセットの検証用サブセットに対する ARI と NMI の和を最大化することを目的関数として設定し，以下の探索空間において最適化を行った：
+具体的には，Animal Kingdom Dataset の検証用サブセットに対する ARI と NMI の和を最大化することを目的関数として設定し，以下の探索空間において最適化を行った：
 
 \begin{itemize}
   \item Multi-Similarity 損失のスケーリングパラメータ $\alpha$: 探索範囲 $[3.0, 6.0]$
   \item Multi-Similarity 損失のスケーリングパラメータ $\beta$: 探索範囲 $[50.0, 70.0]$
-  \item Multi-Similarity 損失のベース: 0.5（固定）
   \item 行動分類損失の重み $\lambda_{action}$: 探索範囲 $[1.0, 3.0]$
   \item GRLのスケーリングパラメータ $\lambda_{grl}$: 探索範囲 $[0.5, 1.0]$
   \item 学習率: $\{1.0 \times 10^{-4}, 2.0 \times 10^{-4}, 3.0 \times 10^{-4}\}$
@@ -255,7 +231,8 @@ Normalized Mutual Information (NMI) は、クラスタリング結果と正解�
 特に，2頭のゾウが混在するデータセットであるため，
 複数個体環境における提案手法の限界についても検証する．
 
-\subsection{実験3: ソースドメイン内での行動分類 (Animal Kingdom)}
+\subsection{実験3: ソースドメイン内での行動分類 (Animal Kingdom Dataset)}
 提案手法が，学習に使用したデータ分布内（In-domain）において，未知の動画クリップを正しくクラスタリングできるかを検証する．
-前述の通り分割した Animal Kingdom のテストデータ（全データの10\%）を入力とし，教師なしクラスタリングを行った際の ARI および NMI を評価する．
-これにより，多様な動物種を含むデータセットにおいて，基本的な行動の特徴表現が獲得できているかを確認する．
+本実験では，前述のデータ分割においてテスト用として確保された，Animal Kingdom Dataset全体の10\%に相当する未学習データを用いて評価を行う．
+具体的には，これらのテストデータを入力とし，教師なしクラスタリングを行った際の ARI および NMI を算出する．
+これにより，多様な動物種を含む本データセットにおいて，基本的な行動の特徴表現が適切に獲得できているかを確認する．

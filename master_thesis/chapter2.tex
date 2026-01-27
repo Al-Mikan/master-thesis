@@ -32,7 +32,7 @@ Vision Transformer（ViT）\cite{dosovitskiy2020vit} の登場により，
 
 動物行動認識の研究において，
 大規模かつ多様なデータセットの整備は重要な課題である．
-Animal Kingdom \cite{ng2022animal} は，
+Animal Kingdom Dataset \cite{ng2022animal} は，
 850 種類以上の動物種と 140 種類以上の行動クラスを含む大規模な公開動画データセットであり，
 動物種や撮影環境の違いに依存しない汎用的な行動表現の学習に適している．
 
@@ -111,7 +111,7 @@ RGB 画像から抽出される外観特徴と，
 この問題に対処する手法として，
 敵対的学習（Adversarial Learning）を用いたドメイン適応が提案されている．
 
-Domain-Adversarial Neural Networks（DANN）\cite{ganin2015dann, ganin2016domain} では，
+Domain-Adversarial Neural Networks（DANN）\cite{ganin2016domain} では，
 特徴抽出器の後段に
 タスク分類器とドメイン識別器を配置し，
 勾配反転層（Gradient Reversal Layer）を用いて学習を行う．
@@ -131,7 +131,7 @@ Adversarial Discriminative Domain Adaptation（ADDA）を提案し，
 しかし，動物行動認識において，
 動物種をドメインとして扱い，
 種に依存しない表現を獲得する試みは
-未だ十分に検討されていない．
+未だ十分に検討されていない．動物は種によって体型や運動機能が大きく異なるため，単純なドメイン適応では共通の特徴を見出すことが困難であるためである．
 本研究では，この研究ギャップに着目し，
 マルチモーダル表現学習と敵対的学習を組み合わせることで，
 動物種に不変な行動表現の獲得を目指す．
