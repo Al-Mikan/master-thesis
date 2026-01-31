@@ -273,24 +273,185 @@ t-SNE を用いて特徴ベクトルを2次元空間に射影した結果を図\
   \label{fig:tsne_ak}
 \end{figure}
 
-図\ref{fig:tsne_ak}(b) を参照すると，「Running（橙色）」は特徴空間上の右側に独立したクラスタを形成しており，
-他の行動クラスと良好に分離されている．これは，Running が持つ大きな運動エネルギーと一貫した方向性が，特徴空間上で支配的な差異として表現されたためである．
+\subsubsection{行動クラスごとの分類分析}
+t-SNE による可視化結果をより深く理解するため，
+各行動クラスにおける正分類・誤分類サンプルを詳細に分析した．
+以下では，特徴的な分類パターンを示した行動クラスについて考察する．
 
-一方で，中央部に位置するクラス群には，明確な境界線が存在せず混在が見られる．この要因は，対象クラスの性質によって以下の2点に大別できる．
+\paragraph{Running}
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\linewidth]{image/run1.png}
+  \includegraphics[width=1\linewidth]{image/run2.png}
+  \includegraphics[width=1\linewidth]{image/run3.png}
+  \caption{Running クラスにおける正分類サンプル例}
+  \label{fig:running_correct}
+\end{figure}
 
-第一に，「Eating（緑色）」および「Sensing（紫色）」における動作レポートリーの多様性である．
-本実験では対象を哺乳類に限定しているが，それでも種による身体構造や生活様式の違いにより，動作（Motion Repertoire）は著しく異なる．
-例えば，「Eating」において，霊長類のように前肢（手）を使って食物を口に運ぶ動物と，草食獣のように直接地面の草を食べる動物では，身体の動きが全く異なる．
-同様に「Sensing」においても，後肢で立ち上がり視覚的に周囲を警戒する動作や，地面に鼻を近づけて嗅覚を用いる動作など，多種多様なパターンが含まれる．
-このように，同一クラスラベルであっても物理的に類似しない動作が混在していることが，特徴空間上での凝集を妨げ，境界を不明瞭にしている主因である．
 
-第二に，「Walking（水色）」や「Keeping still（青色）」における環境ノイズの影響である．
-本データセットには移動カメラによる映像が多く含まれており，カメラのパンやチルトによる「背景全体の動き」がオプティカルフローに混入する．
-この背景ノイズが，Walking のような緩慢な動作や Keeping still といった静止状態の微細な運動特徴を埋没させてしまうため，
-これら低運動クラス間の識別が困難になったと推察される．
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\linewidth]{image/run_walking.png}
+  \caption{Running クラスに分類された Walking サンプル例}
+  \label{fig:running_misclassified}
+\end{figure}
 
-また，図\ref{fig:tsne_ak}(a) において，学習データとテストデータの分布が重なり合っている点は，
-モデルが特定のサンプルに過学習することなく，ソースドメイン内での汎化性能を適切に維持していることを示している．
+Running クラスは特徴空間上で右側に独立したクラスタを形成しており，
+他の行動クラスとの分離性が高い．
+正分類されたサンプルでは，四肢の周期的な動きと一貫した移動方向が明確に観察され，
+これらの特徴がオプティカルフローにより効果的に捉えられていることが確認された．
+
+一方で，Walking ラベルのサンプルが Running クラスタに分類されるケースも確認された．
+これらのサンプルを詳細に観察すると，歩き始めの加速フェーズや速足での移動など，
+運動量が比較的大きい動作が含まれていた．
+このような Walking と Running の境界領域にある動作は，
+オプティカルフローの強度が両者で類似するため，特徴空間上で近接した表現が得られたと考えられる．
+
+
+\paragraph{Walking}
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\linewidth]{image/walk1.png}
+  \includegraphics[width=1\linewidth]{image/walk2.png}
+  \includegraphics[width=1\linewidth]{image/walk3.png}
+  \caption{Walking クラスにおける正分類サンプル例}
+  \label{fig:walking_correct}
+\end{figure}
+
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\linewidth]{image/walking_running.png}
+  \caption{Walking クラスに分類された Running サンプル例}
+  \label{fig:walking_misclassified}
+\end{figure}
+
+Walking クラスは特徴空間上で比較的広範囲に分布しており，
+他の行動クラスとの分離性は Running ほど高くない．
+正分類されたサンプルでは，四肢を交互に動かす歩行特有の動きが観察された．
+特筆すべきは，ヤギや霊長類といった異なる動物種，
+さらには暗所で撮影された映像においても Walking が正しく分類されている点である．
+これは，提案手法が動物種の外見的特徴や照明条件に依存せず，
+歩行動作に共通する運動パターンを効果的に捉えていることを示している．
+Walking として誤分類されるケースとして，
+スローモーション映像として撮影された Running サンプルが挙げられる．
+時間的に引き伸ばされた映像では，フレーム間の動きが小さくなり，
+オプティカルフローの強度が低下するため，
+高速な走行動作であっても緩慢な歩行動作と類似した特徴表現が得られる．
+このような撮影条件の違いによる速度情報の歪みは，
+運動特徴に依存する本手法の限界を示唆している．
+
+
+
+\paragraph{Jumping}
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\linewidth]{image/jump1.png}
+  \includegraphics[width=1\linewidth]{image/jump2.png}
+  \includegraphics[width=1\linewidth]{image/jump3.png}
+  \caption{Jumping クラスにおける正分類サンプル例}
+  \label{fig:jumping_correct}
+\end{figure}
+
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\linewidth]{image/jump_run.png}
+  \caption{Jumping クラスに分類された Running サンプル例}
+  \label{fig:jumping_misclassified}
+\end{figure}
+
+Jumping クラスの正分類サンプルでは，
+地面から離れる瞬間の急激な垂直方向の動きが特徴的であり，
+この独自の運動パターンが他クラスとの分離に寄与している．
+
+一方で，助走を含む跳躍動作「Running」が Jumping クラスタに近接して分布する事例が確認された．
+しかし，これは一概に「誤分類」とは言い切れない側面がある．
+実際の動作を詳細に観察すると，これらのサンプルは「走りながら飛ぶ」という
+複合的な動作を含んでおり，Running と Jumping の中間的な性質を持っている．
+すなわち，特徴空間上での両クラスタの近接は，
+モデルがこれらの複合動作を独立した意味的クラスタとして捉えている可能性を示唆している．
+このような結果は，現行のシングルラベル分類の限界を示すとともに，
+今後マルチラベル的なアプローチを導入することで，
+より自然な行動表現が可能になることを示唆している．
+
+\paragraph{Eating}
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\linewidth]{image/eat1.png}
+  \includegraphics[width=1\linewidth]{image/eat2.png}
+  \includegraphics[width=1\linewidth]{image/eat3.png}
+  \caption{Eating クラスにおける正分類サンプル例}
+  \label{fig:eating_correct}
+\end{figure}
+
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\linewidth]{image/eat_sensing.png}
+  \caption{Eating クラスに分類された Sensing サンプル例}
+  \label{fig:eating_misclassified}
+\end{figure}
+
+Eating クラスの正分類サンプルを観察すると，
+霊長類が手を使って餌を口に運ぶ動作や，四足動物が地面に顔を近づけて草を食べる動作など，
+外見上は大きく異なる採食行動が同一クラスタに正しく分類されていることが確認された．
+これは，提案手法が動物種固有の身体構造に依存せず，
+「口元への反復的な動き」という採食行動に共通する本質的な運動パターンを捉えることに成功していることを示唆している．
+
+一方で，Eating と Sensing の間には顕著な混同が見られた．
+この混同は，単なる見た目の類似だけでなく，行動の時間的な連続性に起因する構造的な問題として分析できる．
+多くの動物において，採食（Eating）に至るまでの予備動作として，
+餌を探す・嗅ぐ・観察するといった Sensing 行動が先行する．
+これらの予備動作は Sensing と酷似しており，
+クリップ単位での時間的平均をとった特徴表現では，両者の境界が本質的に曖昧になる．
+
+このように，「探しながら食べる」といった時間的に連続する行動の組み合わせは，
+現在の単一ラベル分類の枠組みでは適切に表現することが困難であり，
+Jumping と Running の関係と同様に，マルチラベル的なアプローチの必要性が示唆される．
+
+\paragraph{静止系クラスの分布重複}
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\linewidth]{image/attending.png}
+  \caption{Attending（注目）ラベルのサンプル例}
+  \label{fig:attending}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\linewidth]{image/keeping_still.png}
+  \caption{Keeping still（静止）ラベルのサンプル例}
+  \label{fig:keeping_still}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\linewidth]{image/sensing.png}
+  \caption{Sensing（探索）ラベルのサンプル例}
+  \label{fig:sensing}
+\end{figure}
+
+t-SNE 可視化において，Sensing（探索），Attending（注目），Keeping still（静止）の
+3クラスが中央部に密集して分布している現象が観察された．
+これらはラベルこそ異なるものの，「動きがほぼない」という物理的特徴を共有しており，
+オプティカルフローベースの特徴抽出では本質的に区別が困難である．
+実際，これらの行動は人間の目視によるアノテーションにおいても判別が難しい場合が多く，
+ラベル自体の曖昧性が内在している可能性がある．
+
+そのため，この分布の重複は必ずしもモデルの失敗を意味しない．むしろ，モデルがラベルの違いに過剰適合せず，
+これらを「広義の静止行動」という意味的なまとまりとして認識している結果と解釈できる．
+実用上も，これらの低運動行動を厳密に区別する必要性は低い場合が多く，
+動物福祉モニタリングの観点からは妥当なクラスタリングといえる．
+
+\paragraph{複合行動への対応に向けて}
+以上の分析から，現行の単一ラベル分類では捉えきれない行動パターンの存在が明らかになった．
+「走りながら飛ぶ」「探しながら食べる」といった複合的な行動や，
+時間的に連続する行動の遷移を適切に表現するためには，
+今後マルチラベル的なアプローチを導入することが有効であると考えられる．
+また，静止系クラスのように物理的特徴が類似する行動群に対しては，
+階層的なラベル体系（例：「静止行動」の下位カテゴリとして Sensing, Attending, Keeping still を配置）
+を採用することで，より実用的な行動認識システムの構築が期待される．
 
 \subsection{種識別器の分類精度}
 敵対的学習によって種に依存しない表現が獲得されているかを検証するため，種識別器による分類精度を評価した．
