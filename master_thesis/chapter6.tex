@@ -189,8 +189,8 @@ VideoMAE が背景トークンを物理的に無視して前景の動きのみ�
 カメラの動きと動物の自発的な動きを特徴空間上で分離する技術の導入が必要となる．
 
 
-\paragraph{Animal Kingdom データセットにおける困難事例}
-ソースドメインとして用いた Animal Kingdom データセットは大規模である反面，
+\paragraph{Animal Kingdom Datasetにおける困難事例}
+ソースドメインとして用いた Animal Kingdom Datasetは大規模である反面，
 行動認識が極めて困難な低品質なサンプルも少なからず含まれており，これらが学習の阻害要因となった可能性がある．
 主な困難事例として，以下のケースが挙げられる（図\ref{fig:ak_difficult_samples}参照）．
 
@@ -247,7 +247,7 @@ VideoMAE が背景トークンを物理的に無視して前景の動きのみ�
     \subcaption{スローモーション (Slow Motion): 動きの変化量が極端に小さく，運動特徴が捉えにくい．}
   \end{minipage}
 
-  \caption{Animal Kingdom データセットに含まれる認識困難な動画サンプルの例．
+  \caption{Animal Kingdom Datasetに含まれる認識困難な動画サンプルの例．
   一般的な行動認識データセットと比較して，撮影条件（ブレ，遮蔽，スケール，照度，速度）の変動が極めて大きく，これが学習のノイズとなっている．}
   \label{fig:ak_difficult_samples}
 \end{figure}

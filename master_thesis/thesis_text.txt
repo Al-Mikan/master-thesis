@@ -1093,7 +1093,7 @@ ARI で約 0.075 ポイントの大幅な向上を達成したことである．
                                (b) テストデータのみの分布 (Test only)
 Test)
 
-図 5.3: Animal Kingdom データセットにおける特徴空間の t-SNE 可視化．(a) は全デー
+図 5.3: Animal Kingdom Datasetにおける特徴空間の t-SNE 可視化．(a) は全デー
 タ，(b) はテストデータのみを示す．
 
 
