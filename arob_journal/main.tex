@@ -21,10 +21,10 @@
 
 \begin{document}
 
-\title{Disentangling Action from Species: Adversarial Gated Fusion
-for Robust Unsupervised Animal Behavior Recognition}
+\title{Construction of a Multimodal Representation Space Robust to
+the Diversity of Animal Species and Environments}
 
-\titlerunning{Adversarial Gated Fusion for Animal Behavior Recognition}
+\titlerunning{Multimodal Representation for Animal Behavior Recognition}
 
 \author{Mayu Kikuchi \and
         Yasumasa Tamura \and
@@ -390,6 +390,51 @@ We compare the following four conditions to evaluate the contribution of each co
 \label{sec:results}
 %=====================================================================
 
+\subsection{Source domain evaluation (Animal Kingdom Dataset)}
+
+Table~\ref{tab:results_ak} shows results on the Animal Kingdom test set.
+
+\begin{table}[t]
+  \caption{Clustering performance comparison on the Animal Kingdom test set (source domain)}
+  \label{tab:results_ak}
+  \begin{tabular}{lcc}
+    \hline\noalign{\smallskip}
+    Method & ARI & NMI \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    RGB Only & 0.160 & 0.239 \\
+    Flow Only & 0.205 & 0.266 \\
+    Gated Fusion (w/o Adv) & 0.238 & 0.285 \\
+    \textbf{Proposed (Full)} & \textbf{0.313} & \textbf{0.345} \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+\end{table}
+
+The proposed method also achieves the highest performance within the source domain.
+Notably, introducing adversarial learning improves ARI by approximately 0.075 points over Gated Fusion without adversarial learning.
+While domain-invariant learning might typically sacrifice source-domain-specific performance, performance actually improved in this experiment.
+This is because the Animal Kingdom Dataset itself contains diverse animal species, so adversarial learning promoted the extraction of universal behavioral features independent of species, improving classification accuracy even within the same domain.
+
+Figure~\ref{fig:tsne_ak} shows the t-SNE visualization of the learned feature space for the Animal Kingdom test set.
+In Fig.~\ref{fig:tsne_ak}(a), both training and test samples are projected together, confirming that test samples are distributed within the same cluster structures formed by the training data.
+In Fig.~\ref{fig:tsne_ak}(b), which shows only test samples, action classes such as Running and Jumping form relatively cohesive clusters, while static behaviors (Attending, Keeping still, Sensing) overlap in the central region due to their inherently similar low-motion characteristics.
+
+\begin{figure}[t]
+  \centering
+  \begin{minipage}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{image/split_all.png}
+    \subcaption{Train + Test}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{image/split_test.png}
+    \subcaption{Test only}
+  \end{minipage}
+  \caption{t-SNE visualization of the feature space on the Animal Kingdom Dataset. (a) All data (train + test), (b) test data only}
+  \label{fig:tsne_ak}
+\end{figure}
+
 \subsection{Polar bear surveillance video}
 
 Table~\ref{tab:results_polar} shows the clustering performance on the polar bear dataset.
@@ -497,51 +542,6 @@ Meanwhile, the Eating class also includes ``walking while raising trunk to carry
 
 Additionally, the ``context dependency of background'' in the Keeping still class is a non-negligible factor.
 The fact that this class does not form a single cluster in t-SNE but is dispersed across multiple locations suggests that even though the same ``still'' label is assigned, the model learns entirely different feature representations depending on the background context (whether in water or on land).
-
-\subsection{Source domain evaluation (Animal Kingdom Dataset)}
-
-Table~\ref{tab:results_ak} shows results on the Animal Kingdom test set.
-
-\begin{table}[t]
-  \caption{Clustering performance comparison on the Animal Kingdom test set (source domain)}
-  \label{tab:results_ak}
-  \begin{tabular}{lcc}
-    \hline\noalign{\smallskip}
-    Method & ARI & NMI \\
-    \noalign{\smallskip}\hline\noalign{\smallskip}
-    RGB Only & 0.160 & 0.239 \\
-    Flow Only & 0.205 & 0.266 \\
-    Gated Fusion (w/o Adv) & 0.238 & 0.285 \\
-    \textbf{Proposed (Full)} & \textbf{0.313} & \textbf{0.345} \\
-    \noalign{\smallskip}\hline
-  \end{tabular}
-\end{table}
-
-The proposed method also achieves the highest performance within the source domain.
-Notably, introducing adversarial learning improves ARI by approximately 0.075 points over Gated Fusion without adversarial learning.
-While domain-invariant learning might typically sacrifice source-domain-specific performance, performance actually improved in this experiment.
-This is because the Animal Kingdom Dataset itself contains diverse animal species, so adversarial learning promoted the extraction of universal behavioral features independent of species, improving classification accuracy even within the same domain.
-
-Figure~\ref{fig:tsne_ak} shows the t-SNE visualization of the learned feature space for the Animal Kingdom test set.
-In Fig.~\ref{fig:tsne_ak}(a), both training and test samples are projected together, confirming that test samples are distributed within the same cluster structures formed by the training data.
-In Fig.~\ref{fig:tsne_ak}(b), which shows only test samples, action classes such as Running and Jumping form relatively cohesive clusters, while static behaviors (Attending, Keeping still, Sensing) overlap in the central region due to their inherently similar low-motion characteristics.
-
-\begin{figure}[t]
-  \centering
-  \begin{minipage}{0.48\columnwidth}
-    \centering
-    \includegraphics[width=\linewidth]{image/split_all.png}
-    \subcaption{Train + Test}
-  \end{minipage}
-  \hfill
-  \begin{minipage}{0.48\columnwidth}
-    \centering
-    \includegraphics[width=\linewidth]{image/split_test.png}
-    \subcaption{Test only}
-  \end{minipage}
-  \caption{t-SNE visualization of the feature space on the Animal Kingdom Dataset. (a) All data (train + test), (b) test data only}
-  \label{fig:tsne_ak}
-\end{figure}
 
 \subsection{Species discriminator accuracy}
 

@@ -24,9 +24,9 @@
 \begin{document}
 \begin{CJK}{UTF8}{ipxm}
 
-\title{Disentangling Action from Species: Adversarial Gated Fusion\\for Robust Unsupervised Animal Behavior Recognition}
+\title{Construction of a Multimodal Representation Space Robust to\\the Diversity of Animal Species and Environments}
 
-\titlerunning{Adversarial Gated Fusion for Animal Behavior Recognition}
+\titlerunning{Multimodal Representation for Animal Behavior Recognition}
 
 \author{菊地 真優 \and
         田村 康将 \and
@@ -259,6 +259,48 @@ Animal Kingdom Dataset\cite{ng2022animal}は，850種類以上の動物種と140
 \label{sec:results}
 %=====================================================================
 
+\subsection{ソースドメインでの評価}
+
+表\ref{tab:results_ak}にAnimal Kingdomテストセットでの結果を示す．
+
+\begin{table}[t]
+  \caption{Animal Kingdomテストセットに対する各手法のクラスタリング性能比較}
+  \label{tab:results_ak}
+  \begin{tabular}{lcc}
+    \hline\noalign{\smallskip}
+    手法 & ARI & NMI \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    RGB Only & 0.160 & 0.239 \\
+    Flow Only & 0.205 & 0.266 \\
+    Gated Fusion (w/o Adv) & 0.238 & 0.285 \\
+    \textbf{Proposed (Full)} & \textbf{0.313} & \textbf{0.345} \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+\end{table}
+
+ソースドメイン内でも提案手法が最高性能を達成した．敵対的学習の導入によりARIが約0.075ポイント向上しており，ドメイン不変性の学習がソースドメイン性能を犠牲にするどころか，種に依存しない普遍的な行動特徴の抽出を促進し，性能向上に寄与したことが確認された．
+
+図\ref{fig:tsne_ak}にAnimal Kingdomテストセットの特徴空間をt-SNEにより可視化した結果を示す．
+図\ref{fig:tsne_ak}(a)では学習データとテストデータの両方を射影しており，テストサンプルが学習データにより形成されたクラスタ構造内に分布していることが確認できる．
+図\ref{fig:tsne_ak}(b)ではテストデータのみを表示しており，RunningやJumpingは比較的凝集したクラスタを形成する一方，静止系行動（Attending, Keeping still, Sensing）は中央部で重複している．
+
+\begin{figure}[t]
+  \centering
+  \begin{minipage}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{image/split_all.png}
+    \subcaption{Train + Test}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{image/split_test.png}
+    \subcaption{Test only}
+  \end{minipage}
+  \caption{Animal Kingdom Datasetにおける特徴空間のt-SNE可視化．(a) 全データ（学習+テスト），(b) テストデータのみ}
+  \label{fig:tsne_ak}
+\end{figure}
+
 \subsection{ホッキョクグマ監視映像での評価}
 
 表\ref{tab:results_polar}にクラスタリング性能を示す．
@@ -322,48 +364,6 @@ Animal Kingdom Dataset\cite{ng2022animal}は，850種類以上の動物種と140
 
 \paragraph{性能低下の要因分析}
 主な要因は行動クラス定義の曖昧さとクラス内分散の大きさである．Walkingクラスには「一定速度での歩行」「停止を含む緩慢な歩行」「鼻を上げながらの歩行」等の多様なサブパターンが混在し，Eatingクラスとの間で視覚的・運動的に類似した動作が存在する．加えて，2頭の個体差による変動も寄与している．
-
-\subsection{ソースドメインでの評価}
-
-表\ref{tab:results_ak}にAnimal Kingdomテストセットでの結果を示す．
-
-\begin{table}[t]
-  \caption{Animal Kingdomテストセットに対する各手法のクラスタリング性能比較}
-  \label{tab:results_ak}
-  \begin{tabular}{lcc}
-    \hline\noalign{\smallskip}
-    手法 & ARI & NMI \\
-    \noalign{\smallskip}\hline\noalign{\smallskip}
-    RGB Only & 0.160 & 0.239 \\
-    Flow Only & 0.205 & 0.266 \\
-    Gated Fusion (w/o Adv) & 0.238 & 0.285 \\
-    \textbf{Proposed (Full)} & \textbf{0.313} & \textbf{0.345} \\
-    \noalign{\smallskip}\hline
-  \end{tabular}
-\end{table}
-
-ソースドメイン内でも提案手法が最高性能を達成した．敵対的学習の導入によりARIが約0.075ポイント向上しており，ドメイン不変性の学習がソースドメイン性能を犠牲にするどころか，種に依存しない普遍的な行動特徴の抽出を促進し，性能向上に寄与したことが確認された．
-
-図\ref{fig:tsne_ak}にAnimal Kingdomテストセットの特徴空間をt-SNEにより可視化した結果を示す．
-図\ref{fig:tsne_ak}(a)では学習データとテストデータの両方を射影しており，テストサンプルが学習データにより形成されたクラスタ構造内に分布していることが確認できる．
-図\ref{fig:tsne_ak}(b)ではテストデータのみを表示しており，RunningやJumpingは比較的凝集したクラスタを形成する一方，静止系行動（Attending, Keeping still, Sensing）は中央部で重複している．
-
-\begin{figure}[t]
-  \centering
-  \begin{minipage}{0.48\columnwidth}
-    \centering
-    \includegraphics[width=\linewidth]{image/split_all.png}
-    \subcaption{Train + Test}
-  \end{minipage}
-  \hfill
-  \begin{minipage}{0.48\columnwidth}
-    \centering
-    \includegraphics[width=\linewidth]{image/split_test.png}
-    \subcaption{Test only}
-  \end{minipage}
-  \caption{Animal Kingdom Datasetにおける特徴空間のt-SNE可視化．(a) 全データ（学習+テスト），(b) テストデータのみ}
-  \label{fig:tsne_ak}
-\end{figure}
 
 \subsection{種識別器の分類精度}
 
