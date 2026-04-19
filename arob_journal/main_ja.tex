@@ -324,12 +324,12 @@ Animal Kingdom Dataset\cite{ng2022animal}は，850種類以上の動物種と140
 
 図\ref{fig:tsne_polar}のt-SNE可視化では，提案手法において各行動クラスが明確に分離されたクラスタを形成している．特に，未知の行動である「常同行動」がWalkingと部分的に重なりながらも区別可能なクラスタを形成しており，異常行動の自動検知への応用可能性を示している．
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \includegraphics[width=\columnwidth]{image/tsne.png}
+  \includegraphics[width=\textwidth]{image/tsne.png}
   \caption{ホッキョクグマデータセットにおける各手法のt-SNE可視化結果．(a) RGB Only, (b) Flow Only, (c) Gated Fusion (w/o Adv), (d) Proposed (Full)}
   \label{fig:tsne_polar}
-\end{figure}
+\end{figure*}
 
 \paragraph{誤分類分析}
 主な誤分類パターンとして，(1) 折り返し動作を含むWalkingが常同行動クラスタに近接する事例，(2) Walking中の一時停止によりKeeping stillと混同される事例，(3) 低解像度・低フレームレートによりSwimming の微細な動きが捉えられない事例が確認された．

@@ -470,12 +470,12 @@ In the RGB Only plot, samples from different action classes are intermingled wit
 In contrast, the proposed method forms clearly separated clusters for each action class, including Swimming, Walking, and Sleeping.
 Notably, Stereotypic behavior---an unseen action class---forms a distinguishable cluster partially overlapping with Walking, indicating that repetitive movement patterns specific to stereotypic behavior are identifiable in the feature space, suggesting potential for automatic anomalous behavior detection.
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \includegraphics[width=\columnwidth]{image/tsne.png}
+  \includegraphics[width=\textwidth]{image/tsne.png}
   \caption{t-SNE visualizations of the feature space for the polar bear dataset. (a) RGB Only, (b) Flow Only, (c) Gated Fusion (w/o Adv), (d) Proposed (Full). The proposed method shows clearly separated clusters for each action class}
   \label{fig:tsne_polar}
-\end{figure}
+\end{figure*}
 
 \paragraph{Misclassification analysis}
 Detailed analysis revealed two main misclassification patterns.
