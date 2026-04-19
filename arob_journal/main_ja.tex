@@ -1,0 +1,431 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% AROB Journal Paper - Japanese Reference Version (日本語参照版)
+% NOTE: This is for the author's reference only.
+%       The actual submission should use main.tex (English).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\RequirePackage{fix-cm}
+\documentclass[twocolumn]{svjour3}
+
+\smartqed
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage{CJKutf8}
+\usepackage{microtype}
+
+\journalname{Artificial Life and Robotics}
+
+\sloppy
+
+\begin{document}
+\begin{CJK}{UTF8}{ipxm}
+
+\title{Disentangling Action from Species: Adversarial Gated Fusion\\for Robust Unsupervised Animal Behavior Recognition}
+
+\titlerunning{Adversarial Gated Fusion for Animal Behavior Recognition}
+
+\author{菊地 真優 \and
+        田村 康将 \and
+        山本 雅人}
+
+\authorrunning{菊地 他}
+
+\institute{菊地 真優 \at
+              北海道大学 大学院情報科学院\\
+              情報科学専攻 情報理工学コース\\
+              〒060-0814 北海道札幌市北区北14条西9丁目 \\
+              \email{kikuchi.mayu.b3@elms.hokudai.ac.jp}
+           \and
+           田村 康将 \and 山本 雅人 \at
+              北海道大学 大学院情報科学研究院
+}
+
+\date{Received: date / Accepted: date}
+
+\maketitle
+
+\begin{abstract}
+本論文では，動物種および撮影環境の多様性に頑健な動物行動認識を実現するため，マルチモーダル表現学習に基づく共有表現空間の構築手法を提案する．動物行動認識は，動物園における個体管理や福祉評価を支援する重要な技術である．しかし，従来手法の多くは膨大な行動ラベル付きデータを必要とし，学習データに含まれない未知の行動（異常行動など）や，異なる撮影環境への適用が困難であるという課題があった．
+
+そこで本研究では，RGB映像から得られる外観情報と，オプティカルフローに基づく運動情報を統合するマルチモーダル表現学習手法を設計した．各モダリティから抽出された特徴をGated Fusionに基づく統合機構により適応的に統合することで，行動に対して判別的な表現空間を形成する．さらに，獲得される表現から動物種固有の外観バイアスを除去するため，種分類器を用いた敵対的学習を導入し，動物種に依存しない純粋な行動特徴の獲得を目指す．
+
+提案手法の有効性を検証するため，大規模動物行動データセットを用いて学習を行い，未知環境で撮影された動物園のホッキョクグマおよびアジアゾウの映像に対して評価を行った．クラスタリング指標を用いた評価の結果，提案手法は単一モダリティに基づく手法と比較して，動物種や環境の変化に対して頑健であり，かつ学習時に未定義の行動に対しても有効な行動表現を獲得できることを示した．
+\keywords{動物行動認識 \and マルチモーダル表現学習 \and 敵対的学習 \and ドメイン汎化 \and Gated Fusion \and 動物福祉}
+\end{abstract}
+
+%=====================================================================
+\section{序論}
+\label{sec:intro}
+%=====================================================================
+
+近年，動物行動の定量的な解析は，動物園における個体管理や行動モニタリング，さらには動物福祉の向上を目的として，ますます重要となっている\cite{mellor2017updating}．動物の行動は，個体の精神的・身体的状態を反映する重要な指標であり\cite{broom1986indicators}，特に常同行動と呼ばれる反復的な異常行動は，不適切な飼育環境や慢性的なストレスに起因することが報告されている\cite{mason1991stereotypies}．
+
+従来，動物行動の評価は飼育員や研究者による目視観察に基づいて行われてきた．しかし，長時間にわたる継続的な観察には多大な人手と時間を要し，観察者間の主観的なばらつきや，24時間にわたる連続的なモニタリングが困難であるといった課題がある．このような背景から，映像データを用いたコンピュータビジョン技術による動物行動認識の自動化への需要が高まっている．
+
+深層学習に基づく行動認識技術は，人間の行動認識において高い性能を達成しており\cite{carreira2017quo}，動物行動認識への応用も進められている．しかし，これらの手法の多くは膨大な行動ラベル付きデータを必要とするため，新たな動物種や撮影環境へ適用する際には，再度大規模なアノテーション作業が必要となる．加えて，動物の行動は発生頻度に大きな偏りがあり，発生頻度が極めて低い稀な行動については，事前に十分な学習データを収集すること自体が困難である．特に動物園環境では，動物種ごとの外観差や行動様式の多様性に加え，照明条件や檻による遮蔽といった撮影環境の影響が大きく，特定の環境で学習されたモデルをそのまま他環境へ適用（ドメイン汎化）することが困難であるという問題がある．
+
+このような課題に対し，特定のドメインに依存しない行動に関する本質的な特徴を抽出し，動物種や環境の変化に頑健な表現を獲得することが重要である．その有効なアプローチとして，映像から得られる外観情報に加え，オプティカルフローに基づく運動情報を併用するTwo-Stream型のマルチモーダル表現学習が注目されている\cite{simonyan2014two}．静的な外観特徴と動的な運動特徴を統合することで，単一のモダリティでは捉えきれない複雑な行動パターンを表現可能になると期待される．
+
+さらに，表現学習の過程において，行動認識に不要な属性情報を抑制する手法として，敵対的学習を用いた不変表現学習が提案されている．Domain-Adversarial Neural Networks（DANN）\cite{ganin2016domain}に代表されるこれらの手法は，人物認識や物体認識の分野において，ドメイン間の差異を克服した特徴表現の獲得に成功しており，動物行動認識への応用も期待されている．しかし，マルチモーダル表現学習と敵対的学習を組み合わせ，動物種および環境の多様性を同時に克服することを目的とした研究は，未だ十分に検討されていない．
+
+本研究の目的は，動物種および撮影環境の多様性に頑健な動物行動認識を実現するため，マルチモーダル表現学習に基づく共有表現空間の構築手法を提案することである．具体的には，RGB映像から得られる外観情報と，オプティカルフローに基づく運動情報を統合することで，行動に関する判別的な特徴表現を学習する．本研究の核心的な提案として，獲得される表現から動物種固有のバイアスを排除することを目的とした，種分類器との敵対的学習を導入する．
+
+本研究の主な貢献は以下の通りである：
+\begin{enumerate}
+  \item 外観特徴と運動特徴をGated Fusionにより統合したマルチモーダル表現学習により，行動の本質的な特徴を捉える手法を提案した．
+  \item 敵対的学習を用いて動物種に依存しない不変表現を獲得する枠組みを構築した．
+  \item 学習時に未使用の動物種（ホッキョクグマ，アジアゾウ）を対象としたゼロショット評価により，提案手法の汎化性能を実証した．
+\end{enumerate}
+
+%=====================================================================
+\section{関連研究}
+\label{sec:related}
+%=====================================================================
+
+\subsection{動物行動認識}
+
+動物行動認識は，映像データから動物の振る舞いを自動的に解析する技術であり，その応用範囲は基礎的な生態学研究から動物園における飼育管理まで多岐にわたる．動物の行動は，個体の精神的，身体的，および認知的な状態を色濃く反映することが知られており\cite{broom1986indicators}，近年では特に，動物福祉を客観的に評価するための重要な指標として注目されている\cite{mellor2017updating}．
+
+近年の深層学習技術の発展，特にCNNやVision Transformer (ViT)\cite{dosovitskiy2020vit}の登場により，画像分類や物体検出の精度は飛躍的に向上した．また，DeepLabCut\cite{mathis2018deeplabcut}に代表される姿勢推定技術の進展により，映像から動物の関節位置を高精度に推定し，微細な動作を定量的に解析することも可能となった．
+
+Wangら\cite{wang2023polarbear}は，監視カメラ映像を用いたホッキョクグマの常同行動検出手法を提案し，時間平均画像に基づく背景差分により得られた重心軌跡の周期性解析により，頑健な検出を実現した．しかし，同手法は特定の動物種および移動軌跡に限定されており，より多様な行動を種横断的に認識するためには，高次元な表現学習が必要である\cite{bengio2013representation}．
+
+\subsection{動物行動認識データセット}
+
+動物行動認識の研究において，大規模かつ多様なデータセットの整備は重要な課題である．Animal Kingdom Dataset\cite{ng2022animal}は，850種類以上の動物種と140種類以上の行動クラスを含む大規模な公開動画データセットであり，動物種や撮影環境の違いに依存しない汎用的な行動表現の学習に適している．一方，MammalNet\cite{mammalnet}は哺乳類に特化したデータセットであり，KABR\cite{kabr}はケニアの野生動物をドローンで撮影したデータセットである．これらのデータセットは多様性が限定的であるため，多様な動物種への汎化性能を評価するには限界がある．
+
+\subsection{マルチモーダル表現学習}
+
+SimonyanとZisserman\cite{simonyan2014two}は，RGB画像からの外観特徴とオプティカルフローからの運動特徴をそれぞれ独立したCNNで処理し，最終的に統合するTwo-Stream型のアーキテクチャを提案し，単一ストリームの手法を大幅に上回る認識精度を達成した．近年では，CLIP\cite{radford2021clip}に代表されるように，異なるモダリティ間で共有された表現空間を学習するアプローチが注目されている．
+
+\subsection{敵対的学習による不変表現学習}
+
+高次元な特徴表現を学習する際，行動認識に不要な属性情報（動物種や背景など）が特徴量に強く残存すると，汎化性能を阻害する要因となる．DANN\cite{ganin2016domain}では，特徴抽出器の後段にタスク分類器とドメイン識別器を配置し，勾配反転層（GRL）を用いて学習を行うことで，ドメイン特有の情報を抑制した不変表現の獲得が可能である．Tzengら\cite{tzeng2017adversarial}は，ADDA を提案し，ソースドメインの特徴表現をターゲットドメインに適応させた．
+
+しかし，動物行動認識において，動物種をドメインとして扱い，種に依存しない表現を獲得する試みは未だ十分に検討されていない．動物は種によって体型や運動機能が大きく異なるため，単純なドメイン適応では共通の特徴を見出すことが困難である．本研究では，この研究ギャップに着目し，マルチモーダル表現学習と敵対的学習を組み合わせることで，動物種に不変な行動表現の獲得を目指す．
+
+%=====================================================================
+\section{提案手法}
+\label{sec:method}
+%=====================================================================
+
+\subsection{手法の概要}
+
+提案手法は，ラベル付けされたデータが乏しい環境下や，学習時に含まれない未知の動物種に対しても頑健に機能する，行動に基づく特徴表現空間を構築することを目的とする．RGB映像から得られる外観情報と，オプティカルフローから得られる動作情報を適応的に統合するマルチモーダル学習フレームワークである．さらに，学習された特徴空間から動物種に依存するバイアスを除去するため，敵対的学習に基づく種情報分離モジュールを導入する．
+
+処理フローは以下の通りである：
+(1) 入力映像をSliding Windowにより固定長クリップへ分割；
+(2) VideoMAE\cite{tong2022videomae}を用いてRGB映像から外観特徴を抽出；
+(3) RAFT\cite{teed2020raft}でオプティカルフローを推定し，X3D\cite{feichtenhofer2020x3d}で運動特徴を抽出；
+(4) Gated Fusionにより外観・運動特徴を適応的に統合；
+(5) Multi-Similarity損失\cite{wang2019multi}により行動クラスごとのクラスタリングを促進；
+(6) DANN\cite{ganin2016domain}に基づく敵対的学習により種依存情報を除去．
+システム全体のアーキテクチャを図\ref{fig:architecture}に示す．
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=0.85\textwidth]{image/model_new.png}
+  \caption{提案手法の全体アーキテクチャ．入力映像はRGBストリームとオプティカルフローストリームに分岐し，それぞれVideoMAEとX3Dにより特徴抽出される．抽出された特徴はGated Fusionにより適応的に統合され，距離学習・行動分類・敵対的損失の組み合わせにより最適化される}
+  \label{fig:architecture}
+\end{figure*}
+
+\subsection{Sliding Windowによる入力映像の前処理}
+
+入力映像は撮影時間やフレーム数が動画ごとに異なるため，可変長の時系列データとなる．多くの深層学習ベースの映像認識モデルは固定長入力を前提としているため，Sliding Windowに基づく前処理を採用する．具体的には，$T = 16$フレーム長のクリップを1フレームずつ重複させながら生成する．
+
+各クリップは独立にエンコーダへ入力され，得られた複数の特徴ベクトルはAdaptive Average Poolingにより単一の特徴ベクトルへ集約される．この処理により，映像長に依存しない固定次元の埋め込み表現が得られる．
+
+\subsection{RGB映像に基づく外観特徴抽出}
+
+RGBストリームは，映像フレーム列から動物の外観や姿勢，および周囲環境の文脈情報を捉える．事前学習済みのVideoMAE\cite{tong2022videomae}エンコーダ（重み凍結）を用い，768次元の特徴ベクトル$\mathbf{E}_{\mathrm{VideoMAE}} \in \mathbb{R}^{768}$を抽出する．VideoMAEはMasked Autoencoderの枠組みを映像データに拡張したモデルであり，映像内の時空間的な文脈を効果的に捉える能力を有する．
+
+\subsection{オプティカルフローに基づく運動特徴抽出}
+
+オプティカルフローストリームは，映像中の動物の動作に起因する時間的変化を捉える．RAFT\cite{teed2020raft}により隣接フレーム間の画素移動量を推定し，推定されたフロー画像列をX3D\cite{feichtenhofer2020x3d}エンコーダ（Kinetics-400で事前学習，重み凍結）に入力して2048次元の運動特徴ベクトル$\mathbf{E}_{\mathrm{X3D}} \in \mathbb{R}^{2048}$を抽出する．
+
+オプティカルフローの利点は，被写体の色や模様といった外観情報に依存せず，運動そのものを明示的に表現できる点にある．これにより，外観差の大きい異なる動物種間においても共通性の高い運動特徴表現を得ることが可能となる．
+
+\subsection{Gated Fusionによる適応的特徴統合}
+
+外観情報と動作情報は互いに補完的な関係にあるが，行動の種類や状況によってそれぞれの重要度は大きく異なる．例えば，「走る」や「泳ぐ」では運動特徴が支配的となり，「立つ」や「座る」では外観特徴がより重要となる．そこで，Gated Fusionモジュールを用いて入力に応じた適応的な重み付けを行う．
+
+まず，X3Dからの特徴量とVideoMAEからの特徴量を共通の$d = 512$次元空間へ射影する：
+\begin{align}
+  \mathbf{E}'_{\mathrm{X3D}} &= \mathbf{W}_{\mathrm{X3D}} \mathbf{E}_{\mathrm{X3D}} + \mathbf{b}_{\mathrm{X3D}} \\
+  \mathbf{E}'_{\mathrm{VideoMAE}} &= \mathbf{W}_{\mathrm{VideoMAE}} \mathbf{E}_{\mathrm{VideoMAE}} + \mathbf{b}_{\mathrm{VideoMAE}}
+\end{align}
+
+ゲーティングベクトル$\boldsymbol{\alpha} \in [0,1]^{512}$を以下で算出する：
+\begin{equation}
+  \boldsymbol{\alpha} = \sigma(\mathbf{W}_g[\mathbf{E}'_{\mathrm{X3D}}; \mathbf{E}'_{\mathrm{VideoMAE}}] + \mathbf{b}_g)
+\end{equation}
+ここで，$\mathbf{W}_g \in \mathbb{R}^{512 \times 1024}$, $\mathbf{b}_g \in \mathbb{R}^{512}$は学習可能パラメータ，$\sigma(\cdot)$はシグモイド関数である．
+
+最終的な統合特徴量$\mathbf{F} \in \mathbb{R}^{512}$は次式で計算される：
+\begin{equation}
+  \mathbf{F} = \mathbf{E}'_{\mathrm{X3D}} \odot \boldsymbol{\alpha} + \mathbf{E}'_{\mathrm{VideoMAE}} \odot (1 - \boldsymbol{\alpha})
+\end{equation}
+ここで，$\odot$はHadamard積を示す．
+
+\subsection{距離学習による行動表現の構築}
+
+行動に基づく特徴表現空間を構築するために，分類学習ではなく距離学習を採用する．距離学習はサンプル間の相対的な類似度構造を学習するため，学習時に存在しなかったクラスに対しても特徴空間上の距離に基づいて識別が可能となる．
+
+Multi-Similarity損失\cite{wang2019multi}を用いる：
+\begin{multline}
+  L_{\mathrm{ms}} = \frac{1}{N} \sum_{i=1}^{N} \biggl\{
+    \frac{1}{\alpha} \log \biggl[ 1 + \sum_{k \in \mathcal{P}_i} e^{-\alpha (S_{ik} - \lambda)} \biggr] \\
+    + \frac{1}{\beta} \log \biggl[ 1 + \sum_{k \in \mathcal{N}_i} e^{\beta (S_{ik} - \lambda)} \biggr]
+  \biggr\}
+\end{multline}
+
+加えて，行動分類器$C_a$と行動分類損失$L_{\mathrm{action}}$を導入する：
+\begin{equation}
+  L_{\mathrm{action}} = -\frac{1}{N} \sum_{i=1}^{N} \sum_{c=1}^{C} y_{a,i}^{(c)} \log C_a(\mathbf{F}_i)^{(c)}
+\end{equation}
+
+\subsection{敵対的学習による種情報の分離}
+
+異なる動物種間での汎化性能を高めるため，DANN\cite{ganin2016domain}に基づく敵対的学習を導入する．統合特徴量$\mathbf{F}$に対して種識別器$D_s$を接続し，その前段にGRLを配置する：
+\begin{equation}
+  \mathrm{GRL}_{\lambda}(\mathbf{x}) = \mathbf{x}, \quad
+  \frac{\partial \mathrm{GRL}_{\lambda}(\mathbf{x})}{\partial \mathbf{x}} = -\lambda_{\mathrm{grl}} \mathbf{I}
+\end{equation}
+
+敵対的損失は以下で定義される：
+\begin{equation}
+  L_{\mathrm{adv}} = -\frac{1}{N} \sum_{i=1}^{N} \sum_{k=1}^{K} y_{s,i}^{(k)} \log D_s(\mathrm{GRL}(\mathbf{F}_i))^{(k)}
+\end{equation}
+
+\subsection{目的関数と最適化}
+
+全体の目的関数$L_{\mathrm{total}}$は以下の加重和として定義される：
+\begin{equation}
+  L_{\mathrm{total}} = L_{\mathrm{ms}} + \lambda_{\mathrm{action}} L_{\mathrm{action}} + L_{\mathrm{adv}}
+\end{equation}
+ハイパーパラメータはOptuna\cite{akiba2019optuna}を用いたベイズ最適化により探索する．
+
+%=====================================================================
+\section{実験}
+\label{sec:experiments}
+%=====================================================================
+
+\subsection{データセット}
+
+\subsubsection{Animal Kingdom Dataset（ソースドメイン）}
+Animal Kingdom Dataset\cite{ng2022animal}は，850種類以上の動物種と140種類以上の行動クラスを含む大規模公開動画データセットである（24 fps）．本研究では哺乳類のみを使用し，各動画に単一の動物種・単一の行動ラベル・16フレーム以上の条件を満たすものに限定した．表\ref{tab:ak_actions}に使用した行動クラスとクリップ数を示す．
+
+\begin{table}[t]
+  \caption{学習に用いたAnimal Kingdom Datasetの行動クラスとクリップ数}
+  \label{tab:ak_actions}
+  \begin{tabular}{lc}
+    \hline\noalign{\smallskip}
+    行動 & クリップ数 \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    Attending & 119 \\
+    Eating & 212 \\
+    Jumping & 89 \\
+    Keeping still & 117 \\
+    Running & 225 \\
+    Sensing & 184 \\
+    Walking & 512 \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+\end{table}
+
+\subsubsection{ホッキョクグマ監視映像（ターゲットドメイン）}
+札幌市円山動物園のホッキョクグマ館で撮影された監視映像（$368 \times 640$ピクセル，1 fps，2020年8月30日）を使用した．行動ラベルは飼育員の観察記録に基づき，単一行動を一貫して示す30秒間の区間を手動で抽出して付与した．行動クラスは，Keeping still (30), Sleeping (87), Stereotypic behavior (80), Swimming (55), Walking (17)の5種類である．特に「常同行動」は学習データに含まれない未知の行動クラスであり，動物福祉の観点から重要な指標である．
+
+\subsubsection{アジアゾウ監視映像（ターゲットドメイン）}
+円山動物園のゾウ舎で撮影された2頭のアジアゾウの監視映像（$2331 \times 1748$ピクセル，5 fps）を使用した．行動クラスは，Eating (37), Keeping still (17), Walking (15), Swimming (12), Sleeping (9)の5種類である．2頭の個体が混在するため，同一クラス内でも個体差による変動を含む実用的な評価環境を提供する．
+
+\subsection{実装詳細}
+
+最適化アルゴリズムとしてAdamを採用し，バッチサイズは256とした．Optunaによる50回の試行で，ARI+NMIを最大化する設定を選択した．探索空間：$\alpha \in [3.0, 6.0]$, $\beta \in [50.0, 70.0]$, $\lambda_{\mathrm{action}} \in [1.0, 3.0]$, $\lambda_{\mathrm{grl}} \in [0.5, 1.0]$, 学習率$\in \{10^{-4}, 2\times10^{-4}, 3\times10^{-4}\}$, Weight Decay $\in \{10^{-4}, 10^{-3}, 10^{-2}\}$, Dropout $\in \{0.3, 0.5\}$．
+
+\subsection{評価指標}
+
+学習された埋め込み空間での行動クラスの分離性を評価するため，コサイン距離を用いた凝集型クラスタリングを適用し，ARI（Adjusted Rand Index）およびNMI（Normalized Mutual Information）で評価した．また，t-SNE\cite{van2008visualizing}（perplexity=30, learning rate=200）による定性的可視化も行った．
+
+\subsection{比較手法}
+\textbf{RGB Only}（VideoMAEのみ），\textbf{Flow Only}（X3Dのみ），\textbf{Gated Fusion (w/o Adv)}（敵対的学習なし），\textbf{Proposed (Full)}（提案手法）の4条件を比較した．
+
+%=====================================================================
+\section{結果}
+\label{sec:results}
+%=====================================================================
+
+\subsection{ホッキョクグマ監視映像での評価}
+
+表\ref{tab:results_polar}にクラスタリング性能を示す．
+
+\begin{table}[t]
+  \caption{ホッキョクグマ監視映像に対する各手法のクラスタリング性能比較}
+  \label{tab:results_polar}
+  \begin{tabular}{lcc}
+    \hline\noalign{\smallskip}
+    手法 & ARI & NMI \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    RGB Only & 0.093 & 0.278 \\
+    Flow Only & 0.557 & 0.539 \\
+    Gated Fusion (w/o Adv) & 0.615 & 0.622 \\
+    \textbf{Proposed (Full)} & \textbf{0.742} & \textbf{0.728} \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+\end{table}
+
+提案手法はARI 0.742, NMI 0.728と最高性能を達成した．RGB Onlyは学習データ（ドキュメンタリー映像）と評価データ（監視カメラ映像）間のドメインシフトにより極めて低い性能（ARI: 0.093）を示した．Flow Onlyは外観情報に依存しないため大幅に改善し（ARI: 0.557），Gated Fusionによる統合でさらに向上（ARI: 0.615）した．敵対的学習の導入により0.127ポイントの改善が得られ，種情報の抑制が純粋な行動表現の獲得に成功していることが示唆された．
+
+図\ref{fig:tsne_polar}のt-SNE可視化では，提案手法において各行動クラスが明確に分離されたクラスタを形成している．特に，未知の行動である「常同行動」がWalkingと部分的に重なりながらも区別可能なクラスタを形成しており，異常行動の自動検知への応用可能性を示している．
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{image/tsne.png}
+  \caption{ホッキョクグマデータセットにおける各手法のt-SNE可視化結果．(a) RGB Only, (b) Flow Only, (c) Gated Fusion (w/o Adv), (d) Proposed (Full)}
+  \label{fig:tsne_polar}
+\end{figure}
+
+\paragraph{誤分類分析}
+主な誤分類パターンとして，(1) 折り返し動作を含むWalkingが常同行動クラスタに近接する事例，(2) Walking中の一時停止によりKeeping stillと混同される事例，(3) 低解像度・低フレームレートによりSwimming の微細な動きが捉えられない事例が確認された．
+
+\subsection{アジアゾウ監視映像での評価}
+
+表\ref{tab:results_elephant}にクラスタリング性能を示す．
+
+\begin{table}[t]
+  \caption{アジアゾウ監視映像に対する各手法のクラスタリング性能比較}
+  \label{tab:results_elephant}
+  \begin{tabular}{lcc}
+    \hline\noalign{\smallskip}
+    手法 & ARI & NMI \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    RGB Only & 0.212 & 0.423 \\
+    Flow Only & 0.214 & 0.437 \\
+    Gated Fusion (w/o Adv) & 0.223 & 0.445 \\
+    \textbf{Proposed (Full)} & \textbf{0.249} & \textbf{0.473} \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+\end{table}
+
+提案手法が最高性能を達成したが，ホッキョクグマ（ARI: 0.742）と比較して大幅に低い．
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{image/elephant_adv.png}
+  \caption{アジアゾウデータセットにおけるt-SNE可視化結果．ホッキョクグマと比較してクラスタの分離が不明瞭}
+  \label{fig:tsne_elephant}
+\end{figure}
+
+\paragraph{性能低下の要因分析}
+主な要因は行動クラス定義の曖昧さとクラス内分散の大きさである．Walkingクラスには「一定速度での歩行」「停止を含む緩慢な歩行」「鼻を上げながらの歩行」等の多様なサブパターンが混在し，Eatingクラスとの間で視覚的・運動的に類似した動作が存在する．加えて，2頭の個体差による変動も寄与している．
+
+\subsection{ソースドメインでの評価}
+
+表\ref{tab:results_ak}にAnimal Kingdomテストセットでの結果を示す．
+
+\begin{table}[t]
+  \caption{Animal Kingdomテストセットに対する各手法のクラスタリング性能比較}
+  \label{tab:results_ak}
+  \begin{tabular}{lcc}
+    \hline\noalign{\smallskip}
+    手法 & ARI & NMI \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    RGB Only & 0.160 & 0.239 \\
+    Flow Only & 0.205 & 0.266 \\
+    Gated Fusion (w/o Adv) & 0.238 & 0.285 \\
+    \textbf{Proposed (Full)} & \textbf{0.313} & \textbf{0.345} \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+\end{table}
+
+ソースドメイン内でも提案手法が最高性能を達成した．敵対的学習の導入によりARIが約0.075ポイント向上しており，ドメイン不変性の学習がソースドメイン性能を犠牲にするどころか，種に依存しない普遍的な行動特徴の抽出を促進し，性能向上に寄与したことが確認された．
+
+図\ref{fig:tsne_ak}にAnimal Kingdomテストセットの特徴空間をt-SNEにより可視化した結果を示す．
+図\ref{fig:tsne_ak}(a)では学習データとテストデータの両方を射影しており，テストサンプルが学習データにより形成されたクラスタ構造内に分布していることが確認できる．
+図\ref{fig:tsne_ak}(b)ではテストデータのみを表示しており，RunningやJumpingは比較的凝集したクラスタを形成する一方，静止系行動（Attending, Keeping still, Sensing）は中央部で重複している．
+
+\begin{figure}[t]
+  \centering
+  \begin{minipage}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{image/split_all.png}
+    \subcaption{Train + Test}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{image/split_test.png}
+    \subcaption{Test only}
+  \end{minipage}
+  \caption{Animal Kingdom Datasetにおける特徴空間のt-SNE可視化．(a) 全データ（学習+テスト），(b) テストデータのみ}
+  \label{fig:tsne_ak}
+\end{figure}
+
+\subsection{種識別器の分類精度}
+
+表\ref{tab:species_acc}に種識別精度を示す．
+
+\begin{table}[t]
+  \caption{種識別器による分類精度の比較}
+  \label{tab:species_acc}
+  \resizebox{\columnwidth}{!}{
+  \begin{tabular}{lccc}
+    \hline\noalign{\smallskip}
+    手法 & 評価方法 & 精度 (\%) & MCC \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    Gated Fusion (w/o Adv) & Fresh Prob. & 36.2 & 0.321 \\
+    \textbf{Proposed (Full)} & \textbf{Pretr. Disc.} & \textbf{10.1} & \textbf{0.036} \\
+    \noalign{\smallskip}\hline
+    ランダム推測 & -- & 0.6 & 0.000 \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+  }
+\end{table}
+
+敵対的学習なしでは種識別精度36.2\%（MCC: 0.321）と，特徴ベクトルに種情報が色濃く残存していた．敵対的学習の導入により精度10.1\%, MCC 0.036まで低下し，ランダム推測（0.6\%）に極めて近い状態となった．これは特徴空間から種情報が効果的に除去されたことを意味する．
+
+\subsection{ゲーティングパラメータの分析}
+
+学習過程における$\boldsymbol{\alpha}$の変化を分析した結果，以下が明らかになった：(1) 平均値は約0.5から0.2に低下し，約80\%の次元で外観特徴が重視された；(2) 最大値は常に1.0付近を維持し，特定次元では運動特徴が支配的であった；(3) 標準偏差は約0.2で安定し，スパースな特徴選択が行われていた．これは，外観情報をベースとしつつ行動の本質に関わる運動情報のみを選択的に取り入れる「適応的統合」の実現を示している．
+
+%=====================================================================
+\section{考察}
+\label{sec:discussion}
+%=====================================================================
+
+\subsection{外観特徴と運動特徴の相補性}
+
+実験結果より，ドメインシフトの程度により各モダリティの役割が変化することが確認された．同一分布内では外観特徴が姿勢や文脈情報を効果的に捉えるが，ドメインシフトが大きい場合，オプティカルフローの外観非依存性が汎化に不可欠であることが実証された．Gated Fusion機構は入力特性に応じてモダリティ寄与度を動的に調整し，この相補性を効果的に活用した．
+
+\subsection{敵対的学習の有効性}
+
+種不変性と行動識別性のトレードオフが懸念されたが，本結果では敵対的学習がソースドメイン性能も向上させた（$\Delta$ARI: $+0.075$）．これは種情報の抑制が種特有の過学習を防ぐ「正則化」として機能し，より本質的な行動特徴の抽出を促進したことを示唆する．
+
+特に，学習データに含まれない「常同行動」の検出成功は注目に値する．常同行動の概念を明示的に学習していないにもかかわらず，「特定位置での往復歩行」という物理的特徴に基づくクラスタが形成され，動物福祉モニタリングへの実用価値を実証した．
+
+\subsection{限界と今後の課題}
+
+アジアゾウデータセットでの性能低下は，クラス内行動バリエーションの大きさとクラス間境界の曖昧さに起因する．今後の改善方向として，(1) SAM\cite{kirillov2023segment}等による前景セグメンテーションで背景ノイズを排除，(2) 時間的アクションセグメンテーションによる連続行動遷移への対応，(3) Video Transformer\cite{bertasius2021space}を用いた長期的周期性解析，(4) 行動解析に特化した高品質データセットの構築が挙げられる．
+
+%=====================================================================
+\section{結論}
+\label{sec:conclusion}
+%=====================================================================
+
+本研究では，マルチモーダル表現学習と敵対的学習を組み合わせた，ドメイン汎化に基づく新しい動物行動認識手法を提案した．提案手法はRGB映像の外観特徴とオプティカルフローの運動特徴をGated Fusionにより適応的に統合し，種分類器との敵対的学習により種固有のバイアスを除去する．
+
+ホッキョクグマ監視映像においてARI 0.742, NMI 0.728を達成し，敵対的学習なしの手法と比較して0.127ポイントの改善を実現した．アジアゾウ監視映像でも提案手法の優位性を確認しつつ，クラス内分散の大きさに起因する課題も明らかにした．低解像度・低フレームレートの監視映像という厳しい条件下でも，福祉上重要な未知の行動クラスである常同行動の検出に成功しており，動物園環境における自動動物福祉モニタリングの基盤となる成果である．
+
+\begin{acknowledgements}
+本研究で使用した監視映像データを提供していただいた札幌市円山動物園に深く感謝いたします．
+\end{acknowledgements}
+
+\bibliographystyle{spmpsci}
+\bibliography{ref}
+
+\end{CJK}
+\end{document}

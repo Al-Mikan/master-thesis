@@ -1,0 +1,651 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% AROB Journal Paper (Expanded Version ~10 pages)
+% Based on SVJour3 (Springer) template
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\RequirePackage{fix-cm}
+\documentclass[twocolumn]{svjour3}
+
+\smartqed
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage{microtype}
+
+\journalname{Artificial Life and Robotics}
+
+\sloppy
+
+\begin{document}
+
+\title{Disentangling Action from Species: Adversarial Gated Fusion
+for Robust Unsupervised Animal Behavior Recognition}
+
+\titlerunning{Adversarial Gated Fusion for Animal Behavior Recognition}
+
+\author{Mayu Kikuchi \and
+        Yasumasa Tamura \and
+        Masahito Yamamoto}
+
+\authorrunning{M.~Kikuchi et al.}
+
+\institute{M. Kikuchi \at
+              Graduate School of Information Science and Technology,
+              Hokkaido University,
+              Kita 14, Nishi 9, Kita-ku, Sapporo, Hokkaido 060-0814, Japan \\
+              \email{kikuchi.mayu.b3@elms.hokudai.ac.jp}
+           \and
+           Y. Tamura \and M. Yamamoto \at
+              Faculty of Information Science and Technology,
+              Hokkaido University, Japan
+}
+
+\date{Received: date / Accepted: date}
+
+\maketitle
+
+\begin{abstract}
+This paper proposes a method for constructing a shared representation space based on multimodal representation learning to achieve animal behavior recognition that is robust to the diversity of animal species and filming environments.
+Animal behavior recognition is an essential technology for supporting individual management and welfare assessment in zoos.
+However, most conventional methods require large amounts of behavior-labeled data and face difficulties in handling unknown behaviors (e.g., abnormal behaviors) not present in the training data, as well as in adapting to different filming environments.
+
+To address these challenges, we design a multimodal representation learning framework that integrates appearance information from RGB video with motion information based on optical flow.
+Features extracted from each modality are adaptively fused through a Gated Fusion mechanism to form a discriminative representation space for behaviors.
+Furthermore, we introduce adversarial learning with a species classifier to remove species-specific appearance bias from the learned representations, aiming to acquire pure behavioral features independent of animal species.
+
+To validate the proposed method, we train on a large-scale animal behavior dataset and evaluate on zoo surveillance videos of polar bears and Asian elephants captured in unseen environments.
+Evaluation using clustering metrics demonstrates that the proposed method is more robust to changes in animal species and environments compared to single-modality approaches, and can effectively acquire behavioral representations even for actions undefined during training.
+\keywords{Animal behavior recognition \and Multimodal representation learning \and Adversarial learning \and Domain generalization \and Gated Fusion \and Animal welfare}
+\end{abstract}
+
+%=====================================================================
+\section{Introduction}
+\label{sec:intro}
+%=====================================================================
+
+Quantitative analysis of animal behavior has become increasingly important for individual management, behavioral monitoring, and improving animal welfare in zoos \cite{mellor2017updating}.
+Animal behavior serves as a critical indicator reflecting the mental, physical, and cognitive state of individuals \cite{broom1986indicators}.
+In particular, stereotypic behaviors---repetitive abnormal behaviors---have been reported to arise from inadequate housing environments and chronic stress \cite{mason1991stereotypies}.
+
+Conventionally, animal behavior assessment has relied on visual observation by keepers and researchers.
+However, continuous long-term observation requires substantial labor and time, and is subject to inter-observer variability and the impracticability of 24-hour monitoring.
+Against this background, demand for automated animal behavior recognition using computer vision and video data has been growing.
+
+Deep learning-based action recognition has achieved high performance in human activity recognition \cite{carreira2017quo} and is being extended to animal behavior analysis.
+However, most of these methods require massive amounts of behavior-labeled data, necessitating large-scale annotation efforts when applying to new species or environments.
+Moreover, animal behaviors exhibit highly imbalanced occurrence frequencies, making it inherently difficult to collect sufficient training data for rare behaviors.
+In zoo environments, the visual diversity across species, combined with domain-specific challenges such as varying lighting conditions and cage occlusions, makes direct transfer (domain generalization) of models trained in one environment to another particularly difficult.
+
+To overcome these challenges, it is essential to extract fundamental behavioral features that are independent of specific domains and to acquire representations robust to variations in species and environments.
+An effective approach is two-stream multimodal representation learning \cite{simonyan2014two}, which combines appearance information from video with motion information based on optical flow.
+Integrating static appearance features and dynamic motion features is expected to enable capturing complex behavioral patterns that cannot be represented by a single modality alone.
+
+Furthermore, adversarial learning has been proposed as a method for suppressing attribute information irrelevant to behavior recognition during representation learning.
+Domain-Adversarial Neural Networks (DANN) \cite{ganin2016domain} have successfully learned feature representations that overcome inter-domain differences in person re-identification and object recognition, and their application to animal behavior recognition is anticipated.
+However, research combining multimodal representation learning and adversarial learning to simultaneously overcome the diversity of animal species and environments remains insufficiently explored.
+
+The purpose of this study is to propose a method for constructing a shared representation space based on multimodal representation learning for achieving animal behavior recognition robust to the diversity of animal species and filming environments.
+Specifically, we integrate appearance information from RGB video with motion information based on optical flow to learn discriminative feature representations of behaviors.
+As a core contribution, we introduce adversarial learning with a species classifier to eliminate species-specific biases from the acquired representations, aiming to obtain generalizable behavioral representations with high generalization performance for unseen environments and behaviors.
+
+The main contributions of this paper are as follows:
+\begin{enumerate}
+  \item We propose a multimodal representation learning method that captures essential behavioral features by integrating appearance and motion features through Gated Fusion.
+  \item We construct a framework for acquiring species-invariant representations using adversarial learning.
+  \item We demonstrate the generalization performance of the proposed method through zero-shot evaluation on animal species (polar bears and Asian elephants) not used during training.
+\end{enumerate}
+
+%=====================================================================
+\section{Related Work}
+\label{sec:related}
+%=====================================================================
+
+\subsection{Animal behavior recognition}
+
+Animal behavior recognition is a technology for automatically analyzing animal behaviors from video data, with applications ranging from basic ecological research to zoo husbandry management.
+Animal behavior is known to strongly reflect the mental, physical, and cognitive state of individuals \cite{broom1986indicators}, and has attracted increasing attention as an objective indicator for evaluating animal welfare \cite{mellor2017updating}.
+Among these, stereotypic behaviors---repetitive abnormal behaviors---have been reported to arise from inadequate housing environments or chronic stress and serve as critically important indicators for assessing animal health and welfare \cite{mason1991stereotypies}.
+
+Recent advances in deep learning, including Convolutional Neural Networks (CNNs) and Vision Transformers (ViT) \cite{dosovitskiy2020vit}, have dramatically improved image classification and object detection accuracy.
+Pose estimation technologies such as DeepLabCut \cite{mathis2018deeplabcut} have also enabled quantitative analysis of fine-grained animal movements from video footage.
+
+Wang et al.\ \cite{wang2023polarbear} proposed a method for detecting stereotypic behavior of polar bears using surveillance camera footage, analyzing the periodicity of centroid trajectories obtained through temporal average background subtraction.
+While this approach demonstrated robust detection under challenging outdoor conditions with varying lighting, it is limited to specific species (polar bears) and trajectory-based features (locomotion), making it difficult to apply to non-locomotor behaviors or other species with different body structures.
+To recognize more diverse behaviors across species, higher-dimensional representation learning that incorporates body movements and appearance changes is necessary \cite{bengio2013representation}.
+
+\subsection{Animal behavior recognition datasets}
+
+The development of large-scale and diverse datasets is crucial for advancing animal behavior recognition research.
+Animal Kingdom Dataset \cite{ng2022animal} is a large-scale public video dataset containing over 850 animal species and more than 140 action classes, making it suitable for learning generalizable behavioral representations independent of species and environments.
+In contrast, MammalNet \cite{mammalnet} is specialized for mammals, and KABR \cite{kabr} focuses on Kenyan wildlife captured by drones.
+These datasets are limited in terms of species diversity and action class coverage, making it challenging to evaluate generalization performance across diverse species.
+
+\subsection{Multimodal representation learning}
+
+Simonyan and Zisserman \cite{simonyan2014two} proposed a two-stream architecture that processes appearance features from RGB images and motion features from optical flow through independent CNNs, significantly outperforming single-stream approaches by complementarily utilizing static and dynamic information.
+This approach is based on the insight that static appearance information and dynamic motion information are complementary, and their integration can capture complex behavioral patterns that a single modality cannot represent.
+
+Recently, approaches learning shared representation spaces across different modalities, exemplified by CLIP \cite{radford2021clip}, have attracted attention for enabling cross-modal correspondence and zero-shot recognition.
+Such shared representation spaces enable flexible correspondence between modalities and support tasks such as zero-shot recognition.
+
+\subsection{Adversarial learning for invariant representations}
+
+When learning high-dimensional feature representations, the strong presence of attribute information irrelevant to behavior recognition (such as animal species or background) in feature vectors can impede generalization performance.
+Domain-Adversarial Neural Networks (DANN) \cite{ganin2016domain} place a task classifier and a domain discriminator after the feature extractor, using a Gradient Reversal Layer (GRL) to train the feature extractor to produce representations from which domain-specific information is suppressed while retaining task-essential information.
+Tzeng et al.\ \cite{tzeng2017adversarial} proposed Adversarial Discriminative Domain Adaptation (ADDA) for adapting feature representations learned on source domains to target domains.
+The effectiveness of these adversarial learning-based approaches has been widely demonstrated in domains such as person activity recognition.
+
+However, in animal behavior recognition, treating animal species as domains and attempting to acquire species-independent representations has not been sufficiently explored.
+Since animals differ significantly in body shape and motor capabilities across species, finding common features through simple domain adaptation is challenging.
+This study focuses on this research gap and aims to acquire species-invariant behavioral representations by combining multimodal representation learning with adversarial learning.
+
+%=====================================================================
+\section{Proposed Method}
+\label{sec:method}
+%=====================================================================
+
+\subsection{Overview}
+
+The proposed method constructs a behavioral feature representation space that functions robustly even for unknown animal species not included during training.
+It is a multimodal learning framework that adaptively integrates appearance information from RGB video with motion information from optical flow.
+Additionally, a species information disentanglement module based on adversarial learning is introduced to remove species-dependent biases from the learned feature space.
+
+The processing flow is as follows:
+(1) Input video is segmented into fixed-length clips via sliding window;
+(2) Appearance features are extracted from RGB video using VideoMAE \cite{tong2022videomae};
+(3) Optical flow is estimated by RAFT \cite{teed2020raft} and motion features are extracted by X3D \cite{feichtenhofer2020x3d};
+(4) Gated Fusion adaptively integrates appearance and motion features;
+(5) Multi-Similarity loss \cite{wang2019multi} promotes behavior-class clustering;
+(6) Adversarial learning based on DANN \cite{ganin2016domain} removes species-dependent information.
+The overall architecture is illustrated in Fig.~\ref{fig:architecture}.
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=0.85\textwidth]{image/model_new.png}
+  \caption{Overall architecture of the proposed method. The input video is split into RGB and optical flow streams. Appearance features are extracted by VideoMAE and motion features by X3D. The extracted features are adaptively fused via Gated Fusion and optimized through a combination of metric learning, action classification, and adversarial losses}
+  \label{fig:architecture}
+\end{figure*}
+
+\subsection{Video preprocessing with sliding window}
+
+Input videos vary in duration and number of frames.
+Since most deep learning-based video recognition models are designed with fixed-length inputs, we adopt a sliding window approach to segment input videos into fixed-length clips of $T$ frames.
+Specifically, clips of length $T=16$ frames are generated with one-frame overlap (frames 1--16, 2--17, 3--18, etc.) to preserve temporal continuity of local actions.
+
+Each clip is independently fed to the encoder to obtain a clip-level feature vector.
+The resulting multiple feature vectors are then aggregated along the temporal axis via Adaptive Average Pooling to produce a single fixed-dimensional embedding representing the entire video.
+This processing enables stable extraction of fixed-dimensional embeddings independent of video length.
+
+Compared to uniform frame sampling, the sliding window approach with overlapping captures short-duration motion changes and local motion patterns in greater detail, making it particularly effective for detecting fine-grained behavioral changes in animals.
+
+\subsection{Appearance feature extraction from RGB video}
+
+The RGB stream captures appearance, posture, and contextual information of the animal from video frames.
+We use a pre-trained VideoMAE \cite{tong2022videomae} encoder, which extends the Masked Autoencoder framework to video data and is pre-trained through self-supervised learning that masks and reconstructs video patches.
+Through this training, VideoMAE acquires the ability to effectively capture spatiotemporal context within videos.
+
+In this study, we use VideoMAE pre-trained on ImageNet with frozen weights as a feature extractor, extracting a 768-dimensional feature vector $\mathbf{E}_{\mathrm{VideoMAE}} \in \mathbb{R}^{768}$ that captures the posture of the animal and contextual information of the surrounding environment.
+
+\subsection{Motion feature extraction from optical flow}
+
+The optical flow stream captures temporal changes caused by animal motion.
+Optical flow represents the displacement vector of each pixel between two consecutive frames, explicitly encoding subject motion information.
+We use RAFT (Recurrent All-Pairs Field Transforms) \cite{teed2020raft} to estimate inter-frame pixel displacements.
+RAFT achieves highly accurate optical flow estimation through iterative optimization and is robust even in challenging scenarios involving occlusions and large displacements.
+
+The estimated optical flow maps are represented as a sequence of consecutive flow images and input to an X3D \cite{feichtenhofer2020x3d} encoder.
+X3D is a 3D CNN architecture that achieves efficient spatiotemporal convolution, and we use a model pre-trained on the Kinetics-400 dataset with frozen weights to extract a 2048-dimensional motion feature vector $\mathbf{E}_{\mathrm{X3D}} \in \mathbb{R}^{2048}$.
+
+A key advantage of using optical flow is its independence from subject appearance (color, texture), enabling motion-centric representations that generalize across visually diverse species.
+This makes it possible to obtain highly common motion feature representations even between species with large appearance differences, contributing to improved species-independent generalization.
+
+\subsection{Gated Fusion for adaptive feature integration}
+
+Appearance and motion information are complementary, but their relative importance varies significantly depending on the type of action and the situation.
+For example, dynamic behaviors such as ``running'' or ``swimming'' are dominated by motion features, whereas static behaviors such as ``standing'' or ``sitting'' are more dependent on appearance features.
+Rather than simple concatenation, we employ a Gated Fusion module for adaptive, input-dependent weighting.
+
+First, features from X3D ($\mathbf{E}_{\mathrm{X3D}} \in \mathbb{R}^{2048}$) and VideoMAE ($\mathbf{E}_{\mathrm{VideoMAE}} \in \mathbb{R}^{768}$) are projected to a common $d=512$-dimensional space using linear layers:
+\begin{align}
+  \mathbf{E}'_{\mathrm{X3D}} &= \mathbf{W}_{\mathrm{X3D}} \mathbf{E}_{\mathrm{X3D}} + \mathbf{b}_{\mathrm{X3D}} \\
+  \mathbf{E}'_{\mathrm{VideoMAE}} &= \mathbf{W}_{\mathrm{VideoMAE}} \mathbf{E}_{\mathrm{VideoMAE}} + \mathbf{b}_{\mathrm{VideoMAE}}
+\end{align}
+
+A gating vector $\boldsymbol{\alpha} \in [0,1]^{512}$ is then computed as:
+\begin{equation}
+  \boldsymbol{\alpha} = \sigma(\mathbf{W}_g[\mathbf{E}'_{\mathrm{X3D}}; \mathbf{E}'_{\mathrm{VideoMAE}}] + \mathbf{b}_g)
+  \label{eq:gating}
+\end{equation}
+where $[\cdot;\cdot]$ denotes vector concatenation, $\mathbf{W}_g \in \mathbb{R}^{512 \times 1024}$ and $\mathbf{b}_g \in \mathbb{R}^{512}$ are learnable parameters, and $\sigma(\cdot)$ is the sigmoid function.
+Each element of the gating vector $\boldsymbol{\alpha}$ controls whether to emphasize the motion feature or the appearance feature in the corresponding dimension.
+
+The final fused feature $\mathbf{F} \in \mathbb{R}^{512}$ is computed as:
+\begin{equation}
+  \mathbf{F} = \mathbf{E}'_{\mathrm{X3D}} \odot \boldsymbol{\alpha} + \mathbf{E}'_{\mathrm{VideoMAE}} \odot (1 - \boldsymbol{\alpha})
+  \label{eq:fusion}
+\end{equation}
+where $\odot$ denotes element-wise multiplication (Hadamard product).
+This mechanism enables the model to flexibly adjust the contributions of appearance and motion information according to the type of action and environmental conditions, improving adaptability to diverse behavioral patterns compared to simple concatenation or fixed-weight integration.
+
+\subsection{Metric learning for behavioral representation}
+
+We adopt metric learning rather than classification learning to construct the behavioral feature space.
+Unlike classification learning, which can only identify classes defined during training, metric learning learns the relative similarity structure between samples, enabling identification and retrieval based on feature space distances even for classes not present during training.
+This property provides important advantages for reducing annotation costs and generalizing to unknown species and behaviors.
+
+We use Multi-Similarity loss \cite{wang2019multi}, which simultaneously considers multiple similarity relationships between sample pairs for more effective embedding space learning:
+\begin{multline}
+  L_{\mathrm{ms}} = \frac{1}{N} \sum_{i=1}^{N} \biggl\{
+    \frac{1}{\alpha} \log \biggl[ 1 + \sum_{k \in \mathcal{P}_i} e^{-\alpha (S_{ik} - \lambda)} \biggr] \\
+    + \frac{1}{\beta} \log \biggl[ 1 + \sum_{k \in \mathcal{N}_i} e^{\beta (S_{ik} - \lambda)} \biggr]
+  \biggr\}
+  \label{eq:ms_loss}
+\end{multline}
+where $S_{ik}$ is the cosine similarity between samples $x_i$ and $x_k$, $\alpha$ and $\beta$ are scaling parameters controlling the weighting of positive and negative pairs, $\lambda$ is a base similarity threshold, and $\mathcal{P}_i$ and $\mathcal{N}_i$ are the positive and negative sets, respectively.
+Multi-Similarity loss automatically assigns larger weights to hard positives (positive pairs with low similarity) and hard negatives (negative pairs with high similarity), focusing on challenging sample pairs as training progresses.
+
+In addition, an action classifier $C_a$ with cross-entropy loss $L_{\mathrm{action}}$ is introduced to directly optimize action class discrimination boundaries:
+\begin{equation}
+  L_{\mathrm{action}} = -\frac{1}{N} \sum_{i=1}^{N} \sum_{c=1}^{C} y_{a,i}^{(c)} \log C_a(\mathbf{F}_i)^{(c)}
+  \label{eq:action_loss}
+\end{equation}
+By combining both losses, intra-cluster compactness and inter-class separability can be effectively optimized simultaneously.
+
+\subsection{Adversarial learning for species disentanglement}
+
+To improve generalization across species, species-dependent information must be eliminated from the embedding space while retaining pure behavioral information.
+For example, the behavior ``walking'' should contain essentially similar motion patterns whether the subject is a dog, horse, or polar bear.
+However, if species-specific appearance characteristics (fur color, body shape, etc.) persist in the feature space, different clusters form for each species, making cross-species behavior recognition difficult.
+
+We introduce adversarial learning based on DANN \cite{ganin2016domain}.
+A species discriminator $D_s$ is connected to the fused feature $\mathbf{F}$ through a Gradient Reversal Layer (GRL), which acts as an identity mapping during forward pass but reverses the sign of gradients during backpropagation, multiplied by a scaling parameter $\lambda_{\mathrm{grl}}$:
+\begin{equation}
+  \mathrm{GRL}_{\lambda}(\mathbf{x}) = \mathbf{x}, \quad
+  \frac{\partial \mathrm{GRL}_{\lambda}(\mathbf{x})}{\partial \mathbf{x}} = -\lambda_{\mathrm{grl}} \mathbf{I}
+  \label{eq:grl}
+\end{equation}
+
+The adversarial loss is defined as:
+\begin{equation}
+  L_{\mathrm{adv}} = -\frac{1}{N} \sum_{i=1}^{N} \sum_{k=1}^{K} y_{s,i}^{(k)} \log D_s(\mathrm{GRL}(\mathbf{F}_i))^{(k)}
+  \label{eq:adv_loss}
+\end{equation}
+where $K$ is the number of species classes and $y_{s,i}^{(k)}$ is the one-hot encoded species label.
+During training, the species discriminator $D_s$ learns to correctly classify species labels, while through the reversed gradients from GRL, the feature extractor and Gated Fusion layers are updated to produce features that make species identification difficult.
+Through this adversarial training dynamic, species-derived information is gradually removed from the feature space.
+
+\subsection{Objective function and optimization}
+
+The total objective function $L_{\mathrm{total}}$ is defined as a weighted sum of the metric learning loss, action classification loss, and adversarial loss:
+\begin{equation}
+  L_{\mathrm{total}} = L_{\mathrm{ms}} + \lambda_{\mathrm{action}} L_{\mathrm{action}} + L_{\mathrm{adv}}
+  \label{eq:total_loss}
+\end{equation}
+The adversarial loss is added directly to the objective function, but its influence is controlled by the GRL scaling parameter $\lambda_{\mathrm{grl}}$.
+Larger $\lambda_{\mathrm{grl}}$ values strengthen species information suppression, but excessively large values may degrade action discriminability.
+
+Hyperparameters including $\alpha$, $\beta$, $\lambda_{\mathrm{action}}$, and $\lambda_{\mathrm{grl}}$ are optimized using Optuna \cite{akiba2019optuna}, a Bayesian optimization-based hyperparameter auto-tuning framework, to find the balance between these objectives.
+
+%=====================================================================
+\section{Experiments}
+\label{sec:experiments}
+%=====================================================================
+
+\subsection{Datasets}
+
+\subsubsection{Animal Kingdom Dataset (source domain)}
+
+Animal Kingdom Dataset \cite{ng2022animal} is a large-scale public video dataset containing over 850 animal species and more than 140 action classes.
+All videos are recorded at 24 fps with high diversity in viewpoints, backgrounds, and lighting conditions.
+This diversity makes the dataset suitable for learning generalizable behavioral representations independent of species and environments.
+
+We use only mammal videos satisfying the following conditions: each video contains a single animal species, a single behavior label, and at least 16 frames per clip.
+The dataset is split with 10\% reserved as a test set for source domain evaluation.
+Table~\ref{tab:ak_actions} shows the action classes and corresponding clip counts used for training.
+
+\begin{table}[t]
+  \caption{Action classes and clip counts used from the Animal Kingdom Dataset for training}
+  \label{tab:ak_actions}
+  \begin{tabular}{lc}
+    \hline\noalign{\smallskip}
+    Action & Number of clips \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    Attending & 119 \\
+    Eating & 212 \\
+    Jumping & 89 \\
+    Keeping still & 117 \\
+    Running & 225 \\
+    Sensing & 184 \\
+    Walking & 512 \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+\end{table}
+
+\subsubsection{Polar bear surveillance video (target domain)}
+
+To evaluate generalization to unseen environments, we use surveillance footage from the polar bear exhibit at Maruyama Zoo, Sapporo, Japan, captured on August 30, 2020, using a fixed camera ($368 \times 640$ pixels, 1 fps).
+A single polar bear individual is visible throughout.
+Action labels were assigned based on keeper observations by manually extracting 30-second segments showing consistent single behaviors.
+The five action classes are: Keeping still (30 clips), Sleeping (87), Stereotypic behavior (80), Swimming (55), and Walking (17).
+Notably, ``Stereotypic behavior'' is an unseen action class not present in the training data, representing a critical behavioral indicator for animal welfare assessment.
+
+This dataset contains environmental noise specific to real-world conditions, including outdoor lighting changes, low resolution, and low frame rate (1 fps), providing a challenging and realistic test environment.
+
+\subsubsection{Asian elephant surveillance video (target domain)}
+
+To further evaluate cross-species generalization, we use surveillance footage of Asian elephants at Maruyama Zoo ($2331 \times 1748$ pixels, 5 fps), captured by a fixed camera installed in the elephant house.
+A distinctive feature of this dataset is that two individual Asian elephants living in the facility are the subjects.
+Each video clip contains only a single individual, but which individual (A or B) varies across clips.
+This introduces inter-individual variation within action classes, unlike the polar bear dataset (single individual), providing a more practically realistic evaluation environment.
+
+The five action classes are: Eating (37 clips), Keeping still (17), Walking (15), Swimming (12), and Sleeping (9).
+
+\subsection{Implementation details}
+
+We use the Adam optimizer with a batch size of 256, as sample diversity within batches significantly contributes to metric learning efficiency.
+The hyperparameter search spaces for Optuna optimization are:
+$\alpha \in [3.0, 6.0]$,
+$\beta \in [50.0, 70.0]$,
+$\lambda_{\mathrm{action}} \in [1.0, 3.0]$,
+$\lambda_{\mathrm{grl}} \in [0.5, 1.0]$,
+learning rate $\in \{1 \times 10^{-4}, 2 \times 10^{-4}, 3 \times 10^{-4}\}$,
+weight decay $\in \{1 \times 10^{-4}, 1 \times 10^{-3}, 1 \times 10^{-2}\}$,
+and dropout rate $\in \{0.3, 0.5\}$.
+The best configuration is selected from 50 trials using Tree-structured Parzen Estimator (TPE) by maximizing the sum of ARI and NMI on a validation subset.
+
+\subsection{Evaluation metrics}
+
+To quantitatively assess how well action classes are separated in the learned embedding space, we apply Agglomerative Clustering with cosine distance to extracted feature vectors and measure correspondence with ground-truth labels.
+We adopt clustering quality metrics rather than direct classification accuracy, as this study aims to acquire behavioral representations through unsupervised learning.
+
+\textbf{Adjusted Rand Index (ARI)} measures the similarity between two clustering results, corrected for chance agreement:
+\begin{equation}
+  \mathrm{ARI} = \frac{\mathrm{RI} - \mathbb{E}[\mathrm{RI}]}{\max(\mathrm{RI}) - \mathbb{E}[\mathrm{RI}]}
+\end{equation}
+ARI ranges from $-1$ to $1$, where $1$ indicates perfect agreement and $0$ corresponds to random assignment.
+
+\textbf{Normalized Mutual Information (NMI)} normalizes the mutual information between clustering and ground-truth labels:
+\begin{equation}
+  \mathrm{NMI}(U, V) = \frac{2 \cdot I(U; V)}{H(U) + H(V)}
+\end{equation}
+NMI ranges from $0$ to $1$ and provides stable evaluation even with imbalanced class sizes.
+
+Additionally, we use t-SNE \cite{van2008visualizing} (perplexity$=$30, learning rate$=$200) for qualitative visualization of the feature space structure.
+
+\subsection{Comparison methods}
+
+We compare the following four conditions to evaluate the contribution of each component:
+\begin{itemize}
+  \item \textbf{RGB Only}: appearance features from VideoMAE only
+  \item \textbf{Flow Only}: optical flow features from X3D only
+  \item \textbf{Gated Fusion (w/o Adv)}: Gated Fusion applied but without adversarial learning
+  \item \textbf{Proposed (Full)}: Gated Fusion with adversarial learning (proposed method)
+\end{itemize}
+
+%=====================================================================
+\section{Results}
+\label{sec:results}
+%=====================================================================
+
+\subsection{Polar bear surveillance video}
+
+Table~\ref{tab:results_polar} shows the clustering performance on the polar bear dataset.
+
+\begin{table}[t]
+  \caption{Clustering performance comparison on polar bear surveillance video}
+  \label{tab:results_polar}
+  \begin{tabular}{lcc}
+    \hline\noalign{\smallskip}
+    Method & ARI & NMI \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    RGB Only & 0.093 & 0.278 \\
+    Flow Only & 0.557 & 0.539 \\
+    Gated Fusion (w/o Adv) & 0.615 & 0.622 \\
+    \textbf{Proposed (Full)} & \textbf{0.742} & \textbf{0.728} \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+\end{table}
+
+The proposed method achieves the best performance with ARI 0.742 and NMI 0.728.
+RGB Only shows extremely poor performance (ARI: 0.093), attributed to the domain shift between the training data (documentary footage) and the evaluation data (surveillance camera footage) in terms of background and lighting conditions.
+VideoMAE possesses excellent spatiotemporal representation capabilities, but when domain discrepancy is large, it tends to overfit to background information rather than behavior-specific features, demonstrating the limitations of appearance features alone for generalization.
+
+Flow Only achieves substantially higher performance (ARI: 0.557), confirming that optical flow provides domain-invariant motion cues robust to appearance changes.
+Since optical flow is less affected by subject texture and background information, it can extract pure motion information, demonstrating high robustness to domain changes.
+
+Gated Fusion further improves performance (ARI: 0.615) by adaptively complementing motion robustness with contextual appearance information, enabling improved expressiveness for complex behavioral patterns that are difficult to identify with a single modality.
+
+The full proposed method with adversarial learning improves ARI by 0.127 points over Gated Fusion alone, strongly suggesting that adversarial training successfully suppresses species-specific information and enables acquisition of purer behavioral representations.
+
+Figure~\ref{fig:tsne_polar} shows t-SNE visualizations.
+In the RGB Only plot, samples from different action classes are intermingled without clear cluster structures.
+In contrast, the proposed method forms clearly separated clusters for each action class, including Swimming, Walking, and Sleeping.
+Notably, Stereotypic behavior---an unseen action class---forms a distinguishable cluster partially overlapping with Walking, indicating that repetitive movement patterns specific to stereotypic behavior are identifiable in the feature space, suggesting potential for automatic anomalous behavior detection.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{image/tsne.png}
+  \caption{t-SNE visualizations of the feature space for the polar bear dataset. (a) RGB Only, (b) Flow Only, (c) Gated Fusion (w/o Adv), (d) Proposed (Full). The proposed method shows clearly separated clusters for each action class}
+  \label{fig:tsne_polar}
+\end{figure}
+
+\paragraph{Misclassification analysis}
+Detailed analysis revealed two main misclassification patterns.
+First, some Walking clips were misclassified into the Stereotypic behavior cluster.
+These clips contained turning motions or reciprocal trajectories within 30-second segments that visually resemble stereotypic walking.
+The model, trained only on the source domain without explicit knowledge of ``stereotypic behavior,'' formed a cluster based on ``reciprocal walking in a fixed area'' as a physical characteristic, and normal walking clips with incidentally similar trajectories were drawn into this cluster.
+
+Second, mutual confusion was observed among Walking, Swimming, and Keeping still.
+When Walking clips contained brief pauses, optical flow intensity dropped significantly, causing misrecognition as ``Keeping still'' or ``low-motion Swimming.''
+Additionally, the low resolution and frame rate of the dataset made fine swimming movements difficult to discern, with the possibility that the model learned ``water surface fluctuations'' rather than the animal's actual movements.
+
+\subsection{Asian elephant surveillance video}
+
+Table~\ref{tab:results_elephant} shows the results on the Asian elephant dataset.
+
+\begin{table}[t]
+  \caption{Clustering performance comparison on Asian elephant surveillance video}
+  \label{tab:results_elephant}
+  \begin{tabular}{lcc}
+    \hline\noalign{\smallskip}
+    Method & ARI & NMI \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    RGB Only & 0.212 & 0.423 \\
+    Flow Only & 0.214 & 0.437 \\
+    Gated Fusion (w/o Adv) & 0.223 & 0.445 \\
+    \textbf{Proposed (Full)} & \textbf{0.249} & \textbf{0.473} \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+\end{table}
+
+The proposed method achieves the highest performance; however, it is notably lower than the polar bear dataset (ARI: 0.742 vs.\ 0.249).
+
+Figure~\ref{fig:tsne_elephant} shows the t-SNE visualization for the proposed method on the elephant dataset.
+Sleeping forms a highly cohesive independent cluster clearly separated from other behaviors, and Swimming also forms a relatively cohesive cluster, though some Keeping still samples are proximate.
+However, Walking and Eating are widely dispersed without forming dense clusters, with significant overlap in their distribution areas.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{image/elephant_adv.png}
+  \caption{t-SNE visualization for the Asian elephant dataset using the proposed method. Compared to the polar bear dataset, cluster separation is less distinct, particularly for Walking and Eating}
+  \label{fig:tsne_elephant}
+\end{figure}
+
+\paragraph{Performance degradation analysis}
+Table~\ref{tab:comparison_polar_elephant} summarizes the comparison.
+
+\begin{table}[t]
+  \caption{Performance comparison between polar bear and Asian elephant datasets}
+  \label{tab:comparison_polar_elephant}
+  \begin{tabular}{lcc}
+    \hline\noalign{\smallskip}
+    Dataset & ARI & NMI \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    Polar bear & 0.742 & 0.728 \\
+    Asian elephant & 0.249 & 0.473 \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+\end{table}
+
+The primary factors for the performance degradation are the ambiguity of action class definitions and large intra-class variance.
+Compared to polar bears, Asian elephant behaviors exhibit significantly greater intra-class variation.
+Specifically, the Walking class contains diverse sub-patterns including ``constant-speed walking,'' ``slow walking with pauses,'' and ``walking with trunk raised.''
+Meanwhile, the Eating class also includes ``walking while raising trunk to carry food to mouth,'' creating high visual/motion similarity between different classes.
+
+Additionally, the ``context dependency of background'' in the Keeping still class is a non-negligible factor.
+The fact that this class does not form a single cluster in t-SNE but is dispersed across multiple locations suggests that even though the same ``still'' label is assigned, the model learns entirely different feature representations depending on the background context (whether in water or on land).
+
+\subsection{Source domain evaluation (Animal Kingdom Dataset)}
+
+Table~\ref{tab:results_ak} shows results on the Animal Kingdom test set.
+
+\begin{table}[t]
+  \caption{Clustering performance comparison on the Animal Kingdom test set (source domain)}
+  \label{tab:results_ak}
+  \begin{tabular}{lcc}
+    \hline\noalign{\smallskip}
+    Method & ARI & NMI \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    RGB Only & 0.160 & 0.239 \\
+    Flow Only & 0.205 & 0.266 \\
+    Gated Fusion (w/o Adv) & 0.238 & 0.285 \\
+    \textbf{Proposed (Full)} & \textbf{0.313} & \textbf{0.345} \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+\end{table}
+
+The proposed method also achieves the highest performance within the source domain.
+Notably, introducing adversarial learning improves ARI by approximately 0.075 points over Gated Fusion without adversarial learning.
+While domain-invariant learning might typically sacrifice source-domain-specific performance, performance actually improved in this experiment.
+This is because the Animal Kingdom Dataset itself contains diverse animal species, so adversarial learning promoted the extraction of universal behavioral features independent of species, improving classification accuracy even within the same domain.
+
+Figure~\ref{fig:tsne_ak} shows the t-SNE visualization of the learned feature space for the Animal Kingdom test set.
+In Fig.~\ref{fig:tsne_ak}(a), both training and test samples are projected together, confirming that test samples are distributed within the same cluster structures formed by the training data.
+In Fig.~\ref{fig:tsne_ak}(b), which shows only test samples, action classes such as Running and Jumping form relatively cohesive clusters, while static behaviors (Attending, Keeping still, Sensing) overlap in the central region due to their inherently similar low-motion characteristics.
+
+\begin{figure}[t]
+  \centering
+  \begin{minipage}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{image/split_all.png}
+    \subcaption{Train + Test}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{image/split_test.png}
+    \subcaption{Test only}
+  \end{minipage}
+  \caption{t-SNE visualization of the feature space on the Animal Kingdom Dataset. (a) All data (train + test), (b) test data only}
+  \label{fig:tsne_ak}
+\end{figure}
+
+\subsection{Species discriminator accuracy}
+
+Table~\ref{tab:species_acc} shows species classification accuracy to verify species-invariant representation learning.
+
+\begin{table}[t]
+  \caption{Species discriminator classification accuracy}
+  \label{tab:species_acc}
+  \resizebox{\columnwidth}{!}{
+  \begin{tabular}{lccc}
+    \hline\noalign{\smallskip}
+    Method & Eval. & Acc (\%) & MCC \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    Gated Fusion (w/o Adv) & Fresh Prob. & 36.2 & 0.321 \\
+    \textbf{Proposed (Full)} & \textbf{Pretr. Disc.} & \textbf{10.1} & \textbf{0.036} \\
+    \noalign{\smallskip}\hline
+    Random guess & -- & 0.6 & 0.000 \\
+    \noalign{\smallskip}\hline
+  \end{tabular}
+  }
+\end{table}
+
+For Gated Fusion without adversarial learning, we train a fresh species classifier on frozen features (Fresh Probing) to measure how much species information remains in the feature vectors.
+For the proposed method, the pre-trained discriminator from adversarial training is directly evaluated.
+
+Without adversarial learning, species classification accuracy is 36.2\% (MCC: 0.321), significantly higher than random chance (0.6\%, MCC: 0.0), indicating that species information such as body shape and patterns is strongly reflected in feature vectors during normal training.
+With adversarial learning, accuracy drops to 10.1\% and MCC to 0.036, nearly indistinguishable from random chance.
+The MCC value extremely close to 0 indicates that the discriminator's predictions have virtually no correlation with true labels, confirming successful formation of a species-invariant feature space.
+
+The fact that accuracy did not drop to complete random chance (0.6\%) can be attributed to the inseparable correlation between certain behaviors and animal body structure, allowing species inference indirectly from motion characteristics.
+Nevertheless, compared to the baseline, discriminability is markedly suppressed, and this ``forgetting of species information'' contributed to the high generalization performance on target domains.
+
+\subsection{Gating parameter analysis}
+
+We analyzed the behavior of gating parameter $\boldsymbol{\alpha}$ during training, where $\boldsymbol{\alpha}$ represents the weight toward motion features (Flow), with larger values indicating greater emphasis on motion information.
+
+The mean value of $\boldsymbol{\alpha}$ decreased sharply from approximately 0.5 at the beginning of training to approximately 0.2, indicating that roughly 80\% of weight across all feature dimensions is assigned to appearance features (RGB).
+Since the training dataset contains substantial camera motion, the model acquired a strategy of generally suppressing unreliable motion information to minimize noise impact.
+
+However, the maximum value of $\boldsymbol{\alpha}$ remained near 1.0 throughout training.
+The fact that maximum values remain high despite low mean values strongly suggests that motion features (optical flow) are selectively adopted as the most important cues for behavior identification in specific few feature dimensions.
+
+The standard deviation stabilized at approximately 0.2.
+A standard deviation of 0.2 with a mean of 0.2 implies a sparse distribution biased toward 0 with some dimensions having high values, providing statistical evidence that Gated Fusion performs selective feature selection rather than treating all dimensions equally---cutting unnecessary dimensions while passing only the necessary ones.
+
+This behavior demonstrates that the proposed method achieves ``adaptive integration'' that uses appearance information as a base while selectively incorporating only motion information critical to the essence of behavior, enabling robust feature extraction that is resilient to background noise without missing necessary motion information.
+
+%=====================================================================
+\section{Discussion}
+\label{sec:discussion}
+%=====================================================================
+
+\subsection{Complementarity of appearance and motion features}
+
+The experimental results confirm that appearance and motion features play complementary roles whose relative importance changes with the degree of domain shift.
+In the source domain, both modalities show comparable performance, while in target domains, motion features significantly outperform appearance features.
+When learning and evaluation data share the same distribution, appearance features effectively capture animal posture and contextual information.
+However, when domain shift is large, appearance features become overly sensitive to differences in background and lighting conditions, tending to capture environment-dependent information rather than essential behavioral information.
+
+Motion features encode pure motion patterns independent of subject appearance, making them inherently robust to inter-domain environmental differences.
+This property is extremely important for real-world applications where animal species and filming environments are diverse, corroborating the validity of this study's motivation.
+
+\subsection{Trade-off between species invariance and action discriminability}
+
+A key concern with adversarial learning is the trade-off between species information removal and action discriminability.
+Our results show that adversarial learning not only prevents performance degradation but actually improves source domain performance ($\Delta$ARI: $+0.075$), suggesting that species information suppression functions as a ``regularizer'' that prevents species-specific overfitting and promotes extraction of more essential, universal behavioral features.
+
+\subsection{Contribution to animal welfare via stereotypic behavior detection}
+
+The experimental results confirmed that the proposed method can clearly separate ``stereotypic behavior'' from other action classes.
+The presence and frequency of stereotypic behavior is an objective indicator of animal welfare, and its automatic detection greatly contributes to improving husbandry management efficiency and measuring the effectiveness of environmental enrichment in zoos.
+
+Particularly noteworthy is the favorable separation performance between stereotypic behavior and normal walking, despite their highly similar motion patterns.
+This is presumably because adversarial learning removed biases dependent on species and background, resulting in purer extraction of temporal movement structures specific to stereotypic behavior, such as ``repetition in a fixed area'' and ``trajectories including turns.''
+
+\subsection{Limitations and future work}
+
+The lower performance on the Asian elephant dataset highlights challenges when intra-class behavioral variance is high and inter-class boundaries are ambiguous.
+Several directions for improvement exist:
+(1) Integration of foundation models such as Segment Anything Model (SAM) \cite{kirillov2023segment} for foreground segmentation to physically eliminate background noise from feature extraction, enabling the VideoMAE pipeline to learn from foreground motion only;
+(2) introduction of temporal action segmentation and change point detection for handling continuous behavior transitions in real zoo environments;
+(3) incorporation of long-range periodicity analysis using Video Transformers such as TimeSformer \cite{bertasius2021space} for hierarchically integrating local actions (walking) with global patterns (repetition);
+and (4) construction of higher-quality animal behavior datasets specifically designed for behavior analysis with controlled filming conditions (fixed camera, high resolution, absence of occlusion).
+
+%=====================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+%=====================================================================
+
+We proposed a novel animal behavior recognition method based on multimodal representation learning combined with adversarial learning for domain generalization.
+The proposed method adaptively integrates appearance features from RGB video and motion features from optical flow through Gated Fusion, and eliminates species-specific biases through adversarial learning with a species discriminator.
+
+On polar bear surveillance video, the proposed method achieved ARI 0.742 and NMI 0.728, improving ARI by 0.127 points over the method without adversarial learning.
+Furthermore, evaluation on Asian elephant surveillance video confirmed the proposed method's superiority across species, while also revealing challenges related to high intra-class variance and inter-class ambiguity.
+The method successfully detected stereotypic behavior---a welfare-critical unseen action class---even under challenging conditions of low resolution and low frame rate surveillance footage.
+The species discriminator evaluation confirmed that adversarial learning effectively reduces species information in the feature space to near-random levels, demonstrating the acquisition of a truly species-invariant representation.
+
+These results demonstrate the practical applicability of the proposed framework for automated animal welfare monitoring in zoo environments, providing a foundation for developing autonomous, sustainable monitoring systems that contribute to the improvement of animal welfare and conservation activities.
+
+\begin{acknowledgements}
+The authors wish to thank Sapporo Maruyama Zoo for providing the surveillance video data used in this study.
+\end{acknowledgements}
+
+\bibliographystyle{spmpsci}
+\bibliography{ref}
+
+\end{document}
